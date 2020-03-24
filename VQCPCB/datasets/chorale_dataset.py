@@ -4,7 +4,7 @@ import pickle
 import music21
 import numpy as np
 import torch
-from torch.utils.data import TensorDataset
+from torch.utils.data import TensorDataset, DataLoader
 from tqdm import tqdm
 
 from VQCPCB.datasets.dataset import Dataset
@@ -52,7 +52,6 @@ class ChoraleBeatsDataset(Dataset):
                                          REST_SYMBOL, PAD_SYMBOL]
 
         self.cache_dir = f'{self.database_root}/{self.__repr__()}'
-        self.tensor_dataset = None
 
     def __repr__(self):
         return f'ChoraleBeatsDataset(' \
@@ -254,8 +253,8 @@ class ChoraleBeatsDataset(Dataset):
         chorale_tensor = []
         for part_id, part in enumerate(score.parts[:self.num_voices]):
             part_tensor = self._part_to_tensor(part, part_id,
-                                              offsetStart=offsetStart,
-                                              offsetEnd=offsetEnd)
+                                               offsetStart=offsetStart,
+                                               offsetEnd=offsetEnd)
             chorale_tensor.append(part_tensor)
         return torch.cat(chorale_tensor, 0)
 
@@ -335,8 +334,8 @@ class ChoraleBeatsDataset(Dataset):
         voice_ranges = []
         for part in chorale.parts[:self.num_voices]:
             voice_range_part = self._voice_range_in_part(part,
-                                                        offsetStart=offsetStart,
-                                                        offsetEnd=offsetEnd)
+                                                         offsetStart=offsetStart,
+                                                         offsetEnd=offsetEnd)
             if voice_range_part is None:
                 return None
             else:
@@ -471,7 +470,7 @@ class ChoraleBeatsDataset(Dataset):
         return padded_chorale
 
     def _extract_metadata_with_padding(self, tensor_metadata,
-                                      start_tick, end_tick):
+                                       start_tick, end_tick):
         """
         :param tensor_metadata: (num_voices, length, num_metadatas)
         last metadata is the voice_index
@@ -559,3 +558,58 @@ class ChoraleBeatsDataset(Dataset):
             part.append(f)
             score.insert(part)
         return score
+
+    def data_loaders(self,
+                     batch_size,
+                     num_workers,
+                     split=(0.85, 0.10),
+                     shuffle_train=True,
+                     shuffle_val=False,
+                     indexed_dataloaders=False):
+
+        # Load tensor dataset if exists
+        tensor_dataset_path = f'{self.cache_dir}/tensor_dataset'
+        if os.path.exists(tensor_dataset_path):
+            tensor_dataset = torch.load(tensor_dataset_path)
+        else:
+            tensor_dataset = self._make_tensor_dataset()
+            # Save tensor dataset
+            if not os.path.isdir(self.cache_dir):
+                os.mkdir(self.cache_dir)
+            torch.save(tensor_dataset, tensor_dataset_path)
+
+        assert sum(split) < 1
+        num_examples = len(tensor_dataset)
+        a, b = split
+        train_dataset = TensorDataset(*tensor_dataset[: int(a * num_examples)])
+        val_dataset = TensorDataset(*tensor_dataset[int(a * num_examples):
+                                                    int((a + b) * num_examples)])
+        eval_dataset = TensorDataset(*tensor_dataset[int((a + b) * num_examples):])
+
+        train_dl = DataLoader(
+            train_dataset,
+            batch_size=batch_size,
+            shuffle=shuffle_train,
+            num_workers=num_workers,
+            pin_memory=True,
+            drop_last=True,
+        )
+
+        val_dl = DataLoader(
+            val_dataset,
+            batch_size=batch_size,
+            shuffle=shuffle_val,
+            num_workers=num_workers,
+            pin_memory=True,
+            drop_last=True,
+        )
+
+        eval_dl = DataLoader(
+            eval_dataset,
+            batch_size=batch_size,
+            shuffle=False,
+            num_workers=num_workers,
+            pin_memory=True,
+            drop_last=True,
+        )
+        return train_dl, val_dl, eval_dl

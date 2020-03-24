@@ -9,7 +9,7 @@ from VQCPCB.data_processor.bach_data_processor import BachDataProcessor
 from VQCPCB.data_processor.data_processor import DataProcessor
 from VQCPCB.dataloaders.bach_cpc_dataloader import BachCPCDataloaderGenerator
 from VQCPCB.dataloaders.bach_dataloader import BachDataloaderGenerator
-from VQCPCB.dcpc_encoder_trainer import DCPCEncoderTrainer
+from VQCPCB.vqcpc_encoder_trainer import VQCPCEncoderTrainer
 from VQCPCB.decoders.decoder import Decoder
 from VQCPCB.decoders.decoder_relative import DecoderRelative
 from VQCPCB.downscalers.lstm_downscaler import LstmDownscaler
@@ -162,9 +162,10 @@ def get_encoder(model_dir,
         downscaler_kwargs['output_dim'] = quantizer_kwargs['codebook_dim']
         downscaler_kwargs['num_tokens'] = data_processor.num_events * data_processor.num_channels
         downscaler_kwargs['num_channels'] = data_processor.num_channels
-        downscaler = get_downscaler(downscaler_type=config['downscaler_type'],
-                                    downscaler_kwargs=downscaler_kwargs
-                                    )
+        downscaler = get_downscaler(
+            downscaler_type=config['downscaler_type'],
+            downscaler_kwargs=downscaler_kwargs
+        )
 
         quantizer = ProductVectorQuantizer(
             codebook_size=quantizer_kwargs['codebook_size'],
@@ -439,8 +440,8 @@ def get_encoder_trainer(model_dir,
                         training_method,
                         encoder,
                         auxiliary_networks_kwargs):
-    if training_method.lower() == 'dcpc':
-        return DCPCEncoderTrainer(
+    if training_method.lower() == 'vqcpc':
+        return VQCPCEncoderTrainer(
             model_dir=model_dir,
             dataloader_generator=dataloader_generator,
             encoder=encoder,
@@ -490,10 +491,6 @@ def get_encoder_trainer(model_dir,
         raise NotImplementedError
 
 
-class DSPriteMovieCPCDataProcessor(object):
-    pass
-
-
 def get_data_processor(dataloader_generator,
                        data_processor_type,
                        data_processor_kwargs):
@@ -524,58 +521,3 @@ def get_data_processor(dataloader_generator,
         return data_processor
     else:
         raise NotImplementedError
-
-
-#  Annex shit for stacked_encoders
-def load_encoders(encoders_path, overfitted_encoders):
-    """
-    Initialize encoders by loading all the encoders of the stack
-    :return:
-    """
-    encoders = []
-    for hierarchy_level, config_encoder_path in enumerate(encoders_path):
-        # ==== Load encoder ====
-        config_encoder_module_name = os.path.splitext(config_encoder_path)[0].replace('/', '.')
-        config_encoder = importlib.import_module(config_encoder_module_name).config
-        config_encoder['quantizer_kwargs']['initialize'] = False
-        model_dir_encoder = os.path.dirname(config_encoder_path)
-
-        dataloader_generator = get_dataloader_generator(
-            dataset=config_encoder['dataset'],
-            training_method=config_encoder['training_method'],
-            dataloader_generator_kwargs=config_encoder['dataloader_generator_kwargs'],
-        )
-
-        encoder = get_encoder(model_dir=model_dir_encoder,
-                              dataloader_generator=dataloader_generator,
-                              config=config_encoder,
-                              previous_encoders=[]
-                              )
-        encoder.load(early_stopped=not overfitted_encoders)
-        if str(encoder) == 'EncodersStack':
-            for enc in encoder.encoders:
-                encoders.append(enc)
-        else:
-            encoders.append(encoder)
-    return encoders
-
-
-def get_encoders_path(config):
-    config_path = config
-    config_module_name = os.path.splitext(config)[0].replace('/', '.')
-    config = importlib.import_module(config_module_name).config
-
-    # List of encoders path
-    if 'previous_encoders' in config['dataloader_generator_kwargs']:
-        encoders_config = config['dataloader_generator_kwargs']['previous_encoders']
-    else:
-        encoders_config = []
-    encoders_path = encoders_config + [config_path]
-
-    #  decoder's dataloader (useful for plotting clusters)
-    dataloader_generator_decoder = get_dataloader_generator(
-        dataset=config['dataset'],
-        training_method='decoder',
-        dataloader_generator_kwargs=config['dataloader_generator_kwargs'],
-    )
-    return encoders_path, dataloader_generator_decoder

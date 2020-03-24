@@ -11,7 +11,7 @@ from VQCPCB.losses import nce_loss
 from VQCPCB.utils import quantization_loss
 
 
-class DCPCEncoderTrainer(EncoderTrainer):
+class VQCPCEncoderTrainer(EncoderTrainer):
     def __init__(self,
                  model_dir,
                  dataloader_generator,
@@ -20,7 +20,7 @@ class DCPCEncoderTrainer(EncoderTrainer):
                  quantization_weighting,
                  num_gpus=1,  # todo add Dataparallel
                  ):
-        super(DCPCEncoderTrainer, self).__init__(
+        super(VQCPCEncoderTrainer, self).__init__(
             dataloader_generator=dataloader_generator
         )
         self.model_dir = model_dir

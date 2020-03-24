@@ -1,6 +1,7 @@
 """
 @author: Gaetan Hadjeres
 """
+import shutil
 from datetime import datetime
 import importlib
 import os
@@ -66,25 +67,12 @@ def main(load,
     )
 
     if load:
-        if overfitted:
-            encoder_trainer.load(early_stopped=False)
-        else:
-            encoder_trainer.load(early_stopped=True)
+        encoder_trainer.load(early_stopped=False)
 
     encoder_trainer.to(device)
 
-    if 'negative_sampler' in config:
-        size_negative_sampler = config['negative_sampler']['size_negative_sampler']
-        warm_up_epochs = config['negative_sampler']['warm_up_epochs']
-    else:
-        size_negative_sampler = None
-        warm_up_epochs = None
-
+    train = True
     if train:
-        if 'gumbel_temperature_schedule' in config['quantizer_kwargs']:
-            gumbel_temperature_schedule = config['quantizer_kwargs']['gumbel_temperature_schedule']
-        else:
-            gumbel_temperature_schedule = None
         # Copy .py config file in the save directory before training
         if not load:
             if not os.path.exists(model_dir):
@@ -97,12 +85,7 @@ def main(load,
             lr=config['lr'],
             corrupt_labels=config['quantizer_regularization']['corrupt_labels'],
             plot=True,
-            size_negative_sampler=size_negative_sampler,
-            warm_up_epochs=warm_up_epochs,
             num_workers=num_workers,
-            temperature_nce=config['temperature_nce'],
-            gumbel_temperature_schedule=gumbel_temperature_schedule,
-            frozen_encoders_indices=frozen_encoders_indices,
         )
 
     # Generate clusters
