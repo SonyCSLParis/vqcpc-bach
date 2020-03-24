@@ -24,7 +24,7 @@ config = {
 
     # ======== Encoder =========
     # --- DataProcessor ---
-    # 'data_processor_type': 'bach_cpc',  # can be used to filter out some channels
+    'data_processor_type': 'bach_cpc',
     'data_processor_kwargs': dict(
         embedding_size=32
     ),

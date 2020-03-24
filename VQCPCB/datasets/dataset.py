@@ -1,13 +1,10 @@
 import os
-from abc import ABC, abstractmethod
 import VQCPCB
 
 
-class Dataset(ABC):
+class Dataset:
     def __init__(self):
-        self.database_root = os.path.dirname(VQCPCB.__file__)
+        self.database_root = os.path.abspath(f'{os.path.dirname(VQCPCB.__file__)}/../data')
+        if not os.path.isdir(self.database_root):
+            os.mkdir(self.database_root)
         return
-
-    @abstractmethod
-    def get_dataset(self):
-        pass

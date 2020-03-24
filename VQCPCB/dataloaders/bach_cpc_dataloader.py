@@ -1,5 +1,4 @@
 import torch
-
 import music21
 from VQCPCB.dataloaders.cpc_dataloader import CPCDataloaderGenerator
 from VQCPCB.datasets.chorale_dataset import ChoraleBeatsDataset
@@ -76,20 +75,20 @@ class BachCPCDataloaderGenerator(CPCDataloaderGenerator):
             dataset_positive = ChoraleBeatsDataset(
                 corpus_it_gen=music21.corpus.chorales.Iterator,
                 voice_ids=[0, 1, 2, 3],
-                metadatas=None,
+                metadatas=[],
                 sequences_size=num_beats_positive,
                 subdivision=subdivision,
-            ).get_dataset()
+            )
 
             num_tokens_per_beat = subdivision * num_voices
             num_beats_negative = self.num_tokens_per_block // num_tokens_per_beat
             dataset_negative = ChoraleBeatsDataset(
                 corpus_it_gen=music21.corpus.chorales.Iterator,
                 voice_ids=[0, 1, 2, 3],
-                metadatas=None,
+                metadatas=[],
                 sequences_size=num_beats_negative,
                 subdivision=subdivision,
-            ).get_dataset()
+            )
             return dict(positive=dataset_positive, negative=dataset_negative)
         else:
             raise NotImplementedError
@@ -103,58 +102,14 @@ class BachCPCDataloaderGenerator(CPCDataloaderGenerator):
         :return: torch Dataloader, returns a dict of
         """
         #
-        if self.negative_sampling_method == 'random_bad':
-            return self._dataloader_random_bad(batch_size=batch_size,
-                                               num_workers=num_workers)
-        elif self.negative_sampling_method == 'random':
+        if self.negative_sampling_method == 'random':
             return self._dataloader_random(batch_size=batch_size,
                                            num_workers=num_workers)
         elif self.negative_sampling_method == 'same_sequence':
             return self._dataloader_same_sequence(batch_size=batch_size,
                                                   num_workers=num_workers)
-        elif self.negative_sampling_method == 'pvc':
-            return self._dataloader_pvc(batch_size=batch_size,
-                                        num_workers=num_workers)
-
-        elif self.negative_sampling_method == 'apvc':
-            return self._dataloader_apvc(batch_size=batch_size,
-                                         num_workers=num_workers)
-
-        elif self.negative_sampling_method == 'shuffle':
-            raise NotImplementedError
-
         else:
             raise NotImplementedError
-
-    # def block_dataloader(self,
-    #                      batch_size):
-    #     """
-    #
-    #         :return: torch Dataloader, returns batches of
-    #         (batch_size, num_blocks=1, num_tokens_per_block)
-    #         }
-    #
-    #     """
-    #     datasets = DatasetManager()
-    #     num_tokens_per_beat = subdivision * num_voices
-    #
-    #     # Positive dataset
-    #     num_beats = self.num_tokens_per_block // num_tokens_per_beat
-    #     chorale_dataset_kwargs = {
-    #         'voice_ids': [0, 1, 2, 3],
-    #         'metadatas': metadatas,
-    #         'sequences_size': num_beats,
-    #         'subdivision': subdivision,
-    #     }
-    #
-    #     dataset: ChoraleBeatsDataset = datasets.get_dataset(
-    #         name='bach_chorales_beats',
-    #         **chorale_dataset_kwargs
-    #     )
-    #     return [({'x': t[0]}  # discard metadata
-    #              for t in dataloader)
-    #             for dataloader
-    #             in dataset.data_loaders(batch_size)]
 
     def _dataloader_same_sequence(self, batch_size, num_workers):
         """
@@ -224,7 +179,6 @@ class BachCPCDataloaderGenerator(CPCDataloaderGenerator):
 
         return dataloaders
 
-
     def _dataloader_random(self, batch_size, num_workers):
         """
         Dataloader for negative_sampling_method == 'random'
@@ -286,68 +240,3 @@ class BachCPCDataloaderGenerator(CPCDataloaderGenerator):
         ]
 
         return dataloaders
-
-
-class BachCPCSmallDataloaderGenerator(BachCPCDataloaderGenerator):
-    def __init__(self,
-                 num_tokens_per_block,
-                 num_blocks_left,
-                 num_blocks_right,
-                 negative_sampling_method,
-                 num_negative_samples,
-                 *args, **kwargs):
-        """
-
-        :param num_tokens_per_block:
-        :param num_blocks_left:
-        :param num_blocks_right:
-        :param num_negative_samples:
-        :param negative_sampling_method:
-        :param args:
-        :param kwargs:
-        """
-        assert num_tokens_per_block % (subdivision * num_voices) == 0
-        super(BachCPCSmallDataloaderGenerator, self).__init__(
-            num_tokens_per_block,
-            num_blocks_left,
-            num_blocks_right,
-            negative_sampling_method,
-            num_negative_samples)
-
-    def _dataset(self):
-        if self.negative_sampling_method in ['random', 'pvc']:
-            dataset_manager = DatasetManager()
-            num_tokens_per_beat = subdivision * num_voices
-            num_tokens = self.num_tokens_per_block * (self.num_blocks_left + self.num_blocks_right)
-
-            assert num_tokens % num_tokens_per_beat == 0
-
-            # Positive dataset
-            num_beats_positive = num_tokens // num_tokens_per_beat
-            chorale_dataset_positive_kwargs = {
-                'voice_ids': [0, 1, 2, 3],
-                'metadatas': metadatas,
-                'sequences_size': num_beats_positive,
-                'subdivision': subdivision,
-            }
-
-            dataset_positive: ChoraleBeatsDataset = dataset_manager.get_dataset(
-                name='bach_chorales_beats_test',
-                **chorale_dataset_positive_kwargs
-            )
-            num_tokens_per_beat = subdivision * num_voices
-            num_beats_negative = self.num_tokens_per_block // num_tokens_per_beat
-            chorale_dataset_negative_kwargs = {
-                'voice_ids': [0, 1, 2, 3],
-                'metadatas': metadatas,
-                'sequences_size': num_beats_negative,
-                'subdivision': subdivision,
-            }
-
-            dataset_negative: ChoraleBeatsDataset = dataset_manager.get_dataset(
-                name='bach_chorales_beats_test',
-                **chorale_dataset_negative_kwargs
-            )
-            return dict(positive=dataset_positive, negative=dataset_negative)
-        else:
-            raise NotImplementedError

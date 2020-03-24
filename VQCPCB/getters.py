@@ -143,82 +143,54 @@ def get_upscaler(upscaler_type, upscaler_kwargs):
 
 def get_encoder(model_dir,
                 dataloader_generator,
-                config,
-                previous_encoders
+                config
                 ):
     training_method = config['training_method']
     quantizer_kwargs = config['quantizer_kwargs']
     downscaler_kwargs = config['downscaler_kwargs']
     if config['upscaler_type'] is not None:
         upscaler_kwargs = config['upscaler_kwargs']
-    if training_method.lower() in ['dcpc', 'dcpc_triplet', 'apvc']:
-        apvc_flag = training_method.lower() == 'apvc'
-        if not apvc_flag:
-            hierarchy_level = 1
+
+    if training_method.lower() == 'vqcpc':
+        data_processor: DataProcessor = get_data_processor(
+            dataloader_generator=dataloader_generator,
+            data_processor_type=config['data_processor_type'],
+            data_processor_kwargs=config['data_processor_kwargs'],
+        )
+
+        downscaler_kwargs['input_dim'] = data_processor.embedding_size
+        downscaler_kwargs['output_dim'] = quantizer_kwargs['codebook_dim']
+        downscaler_kwargs['num_tokens'] = data_processor.num_events * data_processor.num_channels
+        downscaler_kwargs['num_channels'] = data_processor.num_channels
+        downscaler = get_downscaler(downscaler_type=config['downscaler_type'],
+                                    downscaler_kwargs=downscaler_kwargs
+                                    )
+
+        quantizer = ProductVectorQuantizer(
+            codebook_size=quantizer_kwargs['codebook_size'],
+            num_codebooks=quantizer_kwargs['num_codebooks'],
+            codebook_dim=quantizer_kwargs['codebook_dim'],
+            initialize=quantizer_kwargs['initialize'],
+            squared_l2_norm=quantizer_kwargs['squared_l2_norm'],
+            use_batch_norm=quantizer_kwargs['use_batch_norm'],
+            commitment_cost=quantizer_kwargs['commitment_cost']
+        )
+
+        if config['upscaler_type'] is not None:
+            # upscaler_kwargs['input_dim'] = quantizer_kwargs['codebook_dim'] * quantizer_kwargs['num_codebooks']
+            upscaler_kwargs['input_dim'] = quantizer_kwargs['codebook_dim']
+            upscaler = get_upscaler(upscaler_type=config['upscaler_type'],
+                                    upscaler_kwargs=upscaler_kwargs)
         else:
-            hierarchy_level = config['hierarchy_levels']
-            encoders = previous_encoders
+            upscaler = None
 
-        for _ in range(hierarchy_level):
-            data_processor: DataProcessor = get_data_processor(
-                dataloader_generator=dataloader_generator,
-                data_processor_type=config['data_processor_type'],
-                data_processor_kwargs=config['data_processor_kwargs'],
-            )
-
-            downscaler_kwargs['input_dim'] = data_processor.embedding_size
-            if config['quantizer_type'] == 'commitment':
-                downscaler_kwargs['output_dim'] = quantizer_kwargs['codebook_dim']
-            elif config['quantizer_type'] == 'gumbel_softmax':
-                downscaler_kwargs['output_dim'] = quantizer_kwargs['codebook_size']
-            else:
-                raise ValueError
-            downscaler_kwargs['num_tokens'] = data_processor.num_events * data_processor.num_channels
-            downscaler_kwargs['num_channels'] = data_processor.num_channels
-            downscaler = get_downscaler(downscaler_type=config['downscaler_type'],
-                                        downscaler_kwargs=downscaler_kwargs
-                                        )
-
-            if config['quantizer_type'] == 'commitment':
-                quantizer = ProductVectorQuantizer(
-                    codebook_size=quantizer_kwargs['codebook_size'],
-                    num_codebooks=quantizer_kwargs['num_codebooks'],
-                    codebook_dim=quantizer_kwargs['codebook_dim'],
-                    initialize=quantizer_kwargs['initialize'],
-                    squared_l2_norm=quantizer_kwargs['squared_l2_norm'],
-                    use_batch_norm=quantizer_kwargs['use_batch_norm'],
-                    commitment_cost=quantizer_kwargs['commitment_cost']
-                )
-            elif config['quantizer_type'] == 'gumbel_softmax':
-                quantizer = STGumbelSoftmaxQuantizer(
-                    codebook_size=quantizer_kwargs['codebook_size'],
-                    num_codebooks=quantizer_kwargs['num_codebooks'],
-                    codebook_dim=quantizer_kwargs['codebook_dim'],
-                )
-            else:
-                raise ValueError
-
-            if config['upscaler_type'] is not None:
-                # upscaler_kwargs['input_dim'] = quantizer_kwargs['codebook_dim'] * quantizer_kwargs['num_codebooks']
-                upscaler_kwargs['input_dim'] = quantizer_kwargs['codebook_dim']
-                upscaler = get_upscaler(upscaler_type=config['upscaler_type'],
-                                        upscaler_kwargs=upscaler_kwargs)
-            else:
-                upscaler = None
-
-            encoder = Encoder(
-                model_dir=model_dir,
-                data_processor=data_processor,
-                downscaler=downscaler,
-                quantizer=quantizer,
-                upscaler=upscaler
-            )
-
-            if apvc_flag:
-                encoders.append(encoder)
-
-        if apvc_flag:
-            encoder = EncodersStack(encoders)
+        encoder = Encoder(
+            model_dir=model_dir,
+            data_processor=data_processor,
+            downscaler=downscaler,
+            quantizer=quantizer,
+            upscaler=upscaler
+        )
 
         return encoder
 
@@ -525,7 +497,6 @@ class DSPriteMovieCPCDataProcessor(object):
 def get_data_processor(dataloader_generator,
                        data_processor_type,
                        data_processor_kwargs):
-    # todo not so good
     if data_processor_type == 'bach':
         # compute num_events num_tokens_per_channel
         dataset = dataloader_generator.dataset
@@ -550,40 +521,6 @@ def get_data_processor(dataloader_generator,
             num_tokens_per_channel=num_tokens_per_channel,
             num_tokens_per_block=num_tokens_per_block)
         assert dataloader_generator.num_channels == data_processor.num_channels
-        return data_processor
-
-    elif data_processor_type == 'harpsichord_cpc':
-        num_events = dataloader_generator.dataset.sequence_size
-        num_token_per_block = dataloader_generator.num_tokens_per_block
-        selected_features = dataloader_generator.selected_features
-        num_tokens_per_channel = [len(v) for k, v in dataloader_generator.dataset.value2index.items() if
-                                  k in selected_features]
-
-        data_processor = HarpsichordCPCDataProcessor(embedding_size=data_processor_kwargs['embedding_size'],
-                                                     num_events=num_events,
-                                                     num_tokens_per_channel=num_tokens_per_channel,
-                                                     num_tokens_per_block=num_token_per_block)
-        assert dataloader_generator.num_channels == data_processor.num_channels
-        return data_processor
-
-    elif data_processor_type == 'harpsichord':
-        num_events = dataloader_generator.dataset.sequence_size
-        selected_features = dataloader_generator.selected_features
-        num_tokens_per_channel = [len(v) for k, v in dataloader_generator.dataset.value2index.items() if
-                                  k in selected_features]
-        data_processor = HarpsichordDataProcessor(embedding_size=data_processor_kwargs['embedding_size'],
-                                                  num_events=num_events,
-                                                  num_tokens_per_channel=num_tokens_per_channel)
-        assert dataloader_generator.num_channels == data_processor.num_channels
-        return data_processor
-
-    elif data_processor_type == 'dSprite_movie_flatten_cpc':
-        num_events = dataloader_generator.dataset.duration
-        heigVQCPCB = dataloader_generator.dataset.heigVQCPCB
-        width = dataloader_generator.dataset.width
-        image_size = width * heigVQCPCB
-        data_processor = DSpriteMovieFlattenCPCDataProcessor(num_events=num_events,
-                                                             image_size=image_size)
         return data_processor
     else:
         raise NotImplementedError

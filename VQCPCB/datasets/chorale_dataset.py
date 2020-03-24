@@ -1,12 +1,12 @@
 import os
 import pickle
 
+import music21
 import numpy as np
 import torch
 from torch.utils.data import TensorDataset
 from tqdm import tqdm
 
-import music21
 from VQCPCB.datasets.dataset import Dataset
 from VQCPCB.datasets.helpers import standard_name, SLUR_SYMBOL, START_SYMBOL, END_SYMBOL, \
     standard_note, OUT_OF_RANGE, REST_SYMBOL, PAD_SYMBOL
@@ -22,7 +22,8 @@ class ChoraleBeatsDataset(Dataset):
                  voice_ids,
                  metadatas=None,
                  sequences_size=8,
-                 subdivision=4):
+                 subdivision=4,
+                 load_indices=True):
         """
         :param corpus_it_gen: calling this function returns an iterator
         over chorales (as music21 scores)
@@ -37,19 +38,23 @@ class ChoraleBeatsDataset(Dataset):
         self.num_voices = len(voice_ids)
         self.name = 'chorale_beats_dataset'
         self.sequences_size = sequences_size
-        self.index2note_dicts = None
-        self.note2index_dicts = None
         self.corpus_it_gen = corpus_it_gen
-        self.voice_ranges = None  # in midi pitch
         self.metadatas = metadatas
         self.subdivision = subdivision
+
+        self.index2note_dicts = None
+        self.note2index_dicts = None
+        self.voice_ranges = None  # in midi pitch
+        if load_indices:
+            self._build_indices()
+
         self.list_symbol_except_notes = [SLUR_SYMBOL, START_SYMBOL, END_SYMBOL, OUT_OF_RANGE,
                                          REST_SYMBOL, PAD_SYMBOL]
 
         self.cache_dir = f'{self.database_root}/{self.__repr__()}'
+        self.tensor_dataset = None
 
     def __repr__(self):
-        raise NotImplementedError
         return f'ChoraleBeatsDataset(' \
                f'{self.voice_ids},' \
                f'{self.name},' \
@@ -58,57 +63,43 @@ class ChoraleBeatsDataset(Dataset):
                f'{self.subdivision})'
 
     def _iterator_gen(self):
-        raise NotImplementedError
         return (chorale
                 for chorale in self.corpus_it_gen()
-                if self.is_valid(chorale)
+                if self._is_valid(chorale)
                 )
 
-    def _make_tensor_dataset(self):
-        """
-        Implementation of the make_tensor_dataset abstract base class
-        """
-        raise NotImplementedError
-        # todo check on chorale with Chord
+    def _build_indices(self):
         index_dict_dir = os.path.join(self.database_root,
                                       f'index_dicts')
         index_dict_path = os.path.join(index_dict_dir,
                                        f'{self.name}.pkl')
         # Compute or load index dict
-        # input "index" to use this dataset as a reference
-        # input "y" to first compute the standardized dataset
-        # normal first usage is "y" then "index
         if not os.path.exists(index_dict_dir):
             os.mkdir(index_dict_dir)
         if not os.path.isfile(index_dict_path):
             print('Building index dictionnary. Might take some time')
-            answer = None
-            while answer not in ['y', 'n', 'index']:
-                answer = input('Continue? Type y or n or index!\n')
-            if answer == 'y':
-                smallest_bach_dataset = ChoraleBeatsDataset(
-                    corpus_it_gen=self.corpus_it_gen,
-                    voice_ids=self.voice_ids,
-                    metadatas=[],
-                    sequences_size=1,
-                    subdivision=4
-                )
-                smallest_bach_dataset.make_tensor_dataset()
-                index_dicts = {
-                    'index2note_dicts': smallest_bach_dataset.index2note_dicts,
-                    'note2index_dicts': smallest_bach_dataset.note2index_dicts,
-                    'voice_ranges': smallest_bach_dataset.voice_ranges
-                }
-                self.index2note_dicts = index_dicts['index2note_dicts']
-                self.note2index_dicts = index_dicts['note2index_dicts']
-                self.voice_ranges = index_dicts['voice_ranges']
-                with open(index_dict_path, 'wb') as ff:
-                    pickle.dump(index_dicts, ff)
-            elif answer == 'index':
-                self.compute_index_dicts()
-                self.compute_voice_ranges()
-            else:
-                exit()
+            smallest_bach_dataset = ChoraleBeatsDataset(
+                corpus_it_gen=self.corpus_it_gen,
+                voice_ids=self.voice_ids,
+                metadatas=[],
+                sequences_size=1,
+                subdivision=4,
+                load_indices=False
+            )
+            smallest_bach_dataset._compute_index_dicts()
+            smallest_bach_dataset._compute_voice_ranges()
+            # Need to actually compute the dataset to find names of notes due to transpositions
+            smallest_bach_dataset._make_tensor_dataset()
+            index_dicts = {
+                'index2note_dicts': smallest_bach_dataset.index2note_dicts,
+                'note2index_dicts': smallest_bach_dataset.note2index_dicts,
+                'voice_ranges': smallest_bach_dataset.voice_ranges
+            }
+            self.index2note_dicts = index_dicts['index2note_dicts']
+            self.note2index_dicts = index_dicts['note2index_dicts']
+            self.voice_ranges = index_dicts['voice_ranges']
+            with open(index_dict_path, 'wb') as ff:
+                pickle.dump(index_dicts, ff)
         else:
             with open(index_dict_path, 'rb') as ff:
                 index_dicts = pickle.load(ff)
@@ -116,11 +107,15 @@ class ChoraleBeatsDataset(Dataset):
             self.note2index_dicts = index_dicts['note2index_dicts']
             self.voice_ranges = index_dicts['voice_ranges']
 
+    def _make_tensor_dataset(self):
+        """
+        Implementation of the make_tensor_dataset abstract base class
+        """
         print(f'Making tensor dataset {self.__repr__()}')
         one_beat = 1.
         chorale_tensor_dataset = []
         metadata_tensor_dataset = []
-        for chorale_id, chorale in tqdm(enumerate(self.iterator_gen())):
+        for chorale_id, chorale in tqdm(enumerate(self._iterator_gen())):
 
             # precompute all possible transpositions and corresponding metadatas
             chorale_transpositions = {}
@@ -133,12 +128,12 @@ class ChoraleBeatsDataset(Dataset):
                     chorale.flat.highestOffset,
                     one_beat):
                 offsetEnd = offsetStart + self.sequences_size
-                current_subseq_ranges = self.voice_range_in_subsequence(
+                current_subseq_ranges = self._voice_range_in_subsequence(
                     chorale,
                     offsetStart=offsetStart,
                     offsetEnd=offsetEnd)
 
-                transposition = self.min_max_transposition(current_subseq_ranges)
+                transposition = self._min_max_transposition(current_subseq_ranges)
                 min_transposition_subsequence, max_transposition_subsequence = transposition
 
                 for semi_tone in range(min_transposition_subsequence,
@@ -151,7 +146,7 @@ class ChoraleBeatsDataset(Dataset):
                         if semi_tone not in chorale_transpositions:
                             (chorale_tensor,
                              metadata_tensor) = (
-                                self.transposed_score_and_metadata_tensors(
+                                self._transposed_score_and_metadata_tensors(
                                     chorale,
                                     semi_tone=semi_tone))
                             chorale_transpositions.update(
@@ -162,10 +157,10 @@ class ChoraleBeatsDataset(Dataset):
                             chorale_tensor = chorale_transpositions[semi_tone]
                             metadata_tensor = metadatas_transpositions[semi_tone]
 
-                        local_chorale_tensor = self.extract_score_tensor_with_padding(
+                        local_chorale_tensor = self._extract_score_tensor_with_padding(
                             chorale_tensor,
                             start_tick, end_tick)
-                        local_metadata_tensor = self.extract_metadata_with_padding(
+                        local_metadata_tensor = self._extract_metadata_with_padding(
                             metadata_tensor,
                             start_tick, end_tick)
 
@@ -196,20 +191,19 @@ class ChoraleBeatsDataset(Dataset):
         :param semi_tone:
         :return: couple of tensors
         """
-        raise NotImplementedError
         # transpose
         # compute the most "natural" interval given a number of semi-tones
-        interval_type, interval_nature = interval.convertSemitoneToSpecifierGeneric(
+        interval_type, interval_nature = music21.interval.convertSemitoneToSpecifierGeneric(
             semi_tone)
-        transposition_interval = interval.Interval(
+        transposition_interval = music21.interval.Interval(
             str(interval_nature) + interval_type)
 
         chorale_tranposed = score.transpose(transposition_interval)
-        chorale_tensor = self.get_score_tensor(
+        chorale_tensor = self._get_score_tensor(
             chorale_tranposed,
             offsetStart=0.,
             offsetEnd=chorale_tranposed.flat.highestTime)
-        metadatas_transposed = self.get_metadata_tensor(chorale_tranposed)
+        metadatas_transposed = self._get_metadata_tensor(chorale_tranposed)
         return chorale_tensor, metadatas_transposed
 
     def _get_metadata_tensor(self, score):
@@ -218,7 +212,6 @@ class ChoraleBeatsDataset(Dataset):
         :param score: music21 stream
         :return:tensor (num_voices, chorale_length, len(self.metadatas) + 1)
         """
-        raise NotImplementedError
         md = []
         if self.metadatas:
             for metadata in self.metadatas:
@@ -239,36 +232,8 @@ class ChoraleBeatsDataset(Dataset):
         all_metadata = torch.cat(md, 2)
         return all_metadata
 
-    def set_fermatas(self, metadata_tensor, fermata_tensor):
-        """
-        Impose fermatas for all chorales in a batch
-        :param metadata_tensor: a (batch_size, sequences_size, num_metadatas)
-            tensor
-        :param fermata_tensor: a (sequences_size) binary tensor
-        """
-        raise NotImplementedError
-        if self.metadatas:
-            for metadata_index, metadata in enumerate(self.metadatas):
-                if isinstance(metadata, FermataMetadata):
-                    # uses broadcasting
-                    metadata_tensor[:, :, metadata_index] = fermata_tensor
-                    break
-        return metadata_tensor
-
-    def _add_fermata(self, metadata_tensor, time_index_start, time_index_stop):
-        """
-        Shorthand function to impose a fermata between two time indexes
-        """
-        raise NotImplementedError
-        fermata_tensor = torch.zeros(self.sequences_size)
-        fermata_tensor[time_index_start:time_index_stop] = 1
-        metadata_tensor = self.set_fermatas(metadata_tensor, fermata_tensor)
-        return metadata_tensor
-
     def _min_max_transposition(self, current_subseq_ranges):
-        raise NotImplementedError
         if current_subseq_ranges is None:
-            # todo might be too restrictive
             # there is no note in one part
             transposition = (0, 0)  # min and max transpositions
         else:
@@ -286,10 +251,9 @@ class ChoraleBeatsDataset(Dataset):
         return transposition
 
     def _get_score_tensor(self, score, offsetStart, offsetEnd):
-        raise NotImplementedError
         chorale_tensor = []
         for part_id, part in enumerate(score.parts[:self.num_voices]):
-            part_tensor = self.part_to_tensor(part, part_id,
+            part_tensor = self._part_to_tensor(part, part_id,
                                               offsetStart=offsetStart,
                                               offsetEnd=offsetEnd)
             chorale_tensor.append(part_tensor)
@@ -303,7 +267,6 @@ class ChoraleBeatsDataset(Dataset):
         :param offsetEnd:
         :return: torch IntTensor (1, length)
         """
-        raise NotImplementedError
         list_notes_and_rests = list(part.flat.getElementsByOffset(
             offsetStart=offsetStart,
             offsetEnd=offsetEnd,
@@ -369,10 +332,9 @@ class ChoraleBeatsDataset(Dataset):
         :param offsetEnd:
         :return:
         """
-        raise NotImplementedError
         voice_ranges = []
         for part in chorale.parts[:self.num_voices]:
-            voice_range_part = self.voice_range_in_part(part,
+            voice_range_part = self._voice_range_in_part(part,
                                                         offsetStart=offsetStart,
                                                         offsetEnd=offsetEnd)
             if voice_range_part is None:
@@ -382,7 +344,6 @@ class ChoraleBeatsDataset(Dataset):
         return voice_ranges
 
     def _voice_range_in_part(self, part, offsetStart, offsetEnd):
-        raise NotImplementedError
         notes_in_subsequence = part.flat.getElementsByOffset(
             offsetStart,
             offsetEnd,
@@ -402,7 +363,6 @@ class ChoraleBeatsDataset(Dataset):
             return None
 
     def _compute_index_dicts(self):
-        raise NotImplementedError
         print('Computing index dicts')
         self.index2note_dicts = [
             {} for _ in range(self.num_voices)
@@ -421,7 +381,7 @@ class ChoraleBeatsDataset(Dataset):
             note_set.add(PAD_SYMBOL)
 
         # get all notes: used for computing pitch ranges
-        for chorale in tqdm(self.iterator_gen()):
+        for chorale in tqdm(self._iterator_gen()):
             for part_id, part in enumerate(chorale.parts[:self.num_voices]):
                 for n in part.flat.notesAndRests:
                     note_sets[part_id].add(standard_name(n))
@@ -435,13 +395,10 @@ class ChoraleBeatsDataset(Dataset):
                 note2index.update({note: note_index})
 
     def _is_valid(self, chorale):
-        raise NotImplementedError
         # We only consider 4-part chorales
-        # TODO(gaetan) filter contains chord
         return (len(chorale.parts) == 4)
 
     def _compute_voice_ranges(self):
-        raise NotImplementedError
         assert self.index2note_dicts is not None
         assert self.note2index_dicts is not None
         self.voice_ranges = []
@@ -468,7 +425,6 @@ class ChoraleBeatsDataset(Dataset):
         with padding if necessary
         i.e. if start_tick < 0 or end_tick > tensor_chorale length
         """
-        raise NotImplementedError
         assert start_tick < end_tick
         assert end_tick > 0
         length = tensor_score.size()[1]
@@ -523,7 +479,6 @@ class ChoraleBeatsDataset(Dataset):
         :param end_tick:
         :return:
         """
-        raise NotImplementedError
         assert start_tick < end_tick
         assert end_tick > 0
         num_voices, length, num_metadatas = tensor_metadata.size()
@@ -604,31 +559,3 @@ class ChoraleBeatsDataset(Dataset):
             part.append(f)
             score.insert(part)
         return score
-
-    def get_dataset(self):
-        """
-        :return:
-        """
-
-        'JUSTE CHECK SI YA DOSIIER/DATASET ET DOSSIER/TENSOR_DATASET ET C TOUT;' \
-        'SI YA PAS ON RECONSTRUIT'
-
-        tensor_dataset_filepath = f'{self.cache_dir}/tensor_dataset'
-        filepath = f'{self.cache_dir}/dataset'
-        if os.path.exists(filepath):
-            print(f'Loading {self.__repr__()} from {filepath}')
-            dataset = torch.load(filepath)
-            print(f'(the corresponding TensorDataset is not loaded)')
-        else:
-            print(f'Creating {self.__repr__()}, '
-                  f'both tensor dataset and parameters')
-            # initialize and force the computation of the tensor_dataset
-            # first remove the cached data if it exists
-            if os.path.exists(tensor_dataset_filepath):
-                os.remove(tensor_dataset_filepath)
-
-            tensor_dataset = self._make_tensor_dataset()
-            torch.save(self.tensor_dataset, self.tensor_dataset_filepath(cache_dir))
-            dataset
-            torch.save(dataset, self.filepath(cache_dir=self.cache_dir))
-        return dataset
