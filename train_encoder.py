@@ -80,6 +80,7 @@ def main(load,
             shutil.copy(config_path, f'{model_dir}/config.py')
         encoder_trainer.train_model(
             batch_size=config['batch_size'],
+            device=device,
             num_batches=config['num_batches'],
             num_epochs=config['num_epochs'],
             lr=config['lr'],

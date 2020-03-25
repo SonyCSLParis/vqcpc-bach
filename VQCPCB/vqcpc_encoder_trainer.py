@@ -3,6 +3,7 @@ from itertools import islice
 
 import numpy as np
 import torch
+from torch import nn
 from tqdm import tqdm
 
 from VQCPCB import auxiliary_dcpc
@@ -18,7 +19,6 @@ class VQCPCEncoderTrainer(EncoderTrainer):
                  encoder,
                  c_net_kwargs,
                  quantization_weighting,
-                 num_gpus=1,  # todo add Dataparallel
                  ):
         super(VQCPCEncoderTrainer, self).__init__(
             dataloader_generator=dataloader_generator
@@ -122,7 +122,8 @@ class VQCPCEncoderTrainer(EncoderTrainer):
               data_loader,
               train,
               num_batches,
-              corrupt_labels
+              corrupt_labels,
+              device,
               ):
 
         means = {
@@ -150,7 +151,7 @@ class VQCPCEncoderTrainer(EncoderTrainer):
             negative_samples = negative_samples.view(batch_size * num_negative_samples * fks_dim, num_events,
                                                      num_channels)
             z_quantized_negative, encoding_indices_negative, quantization_loss_negative = self.encoder(
-                negative_samples, corrupt_labels=corrupt_labels)
+                negative_samples, device=device, corrupt_labels=corrupt_labels)
             _, num_blocks, dim_z = z_quantized_negative.shape
             z_quantized_negative = z_quantized_negative.view(batch_size, num_negative_samples, fks_dim, num_blocks,
                                                              dim_z)
@@ -160,8 +161,10 @@ class VQCPCEncoderTrainer(EncoderTrainer):
                                                                          num_blocks)
 
             z_quantized_left, encoding_indices_left, quantization_loss_left = self.encoder(tensor_dict['x_left'],
+                                                                                           device=device,
                                                                                            corrupt_labels=False)
             z_quantized_right, encoding_indices_right, quantization_loss_right = self.encoder(tensor_dict['x_right'],
+                                                                                              device=device,
                                                                                               corrupt_labels=False)
             # -- compute c
             c = self.c_module(z_quantized_left, h=None)
@@ -172,7 +175,6 @@ class VQCPCEncoderTrainer(EncoderTrainer):
             #  --Negative fks
             # z_negative is
             # (batch_size, num_negative_samples, num_blocks_right, 1, z_dim)
-            # remove unused dim # fixme
             z_quantized_negative = z_quantized_negative[:, :, :, 0, :]
             (batch_size,
              num_negative_samples,
@@ -214,8 +216,7 @@ class VQCPCEncoderTrainer(EncoderTrainer):
             self.optimizer.zero_grad()
             if train:
                 loss.backward()
-                # TODO clip grad norm?
-                # nn.utils.clip_grad_value_(self.parameters(), clip_value=3)
+                nn.utils.clip_grad_value_(self.parameters(), clip_value=5)
                 self.optimizer.step()
             #########################
 

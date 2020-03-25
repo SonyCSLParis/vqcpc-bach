@@ -11,8 +11,8 @@ class VectorQuantizer(nn.Module):
 
 
 class NoQuantization(VectorQuantizer):
-    def forward(self, inputs, **kwargs):
-        loss = torch.zeros_like(inputs).cuda().sum(dim=-1)
+    def forward(self, inputs, device, **kwargs):
+        loss = torch.zeros_like(inputs).to(device).sum(dim=-1)
         quantized_sg = inputs
         encoding_indices = None
         return quantized_sg, encoding_indices, loss
@@ -73,7 +73,7 @@ class ProductVectorQuantizer(VectorQuantizer):
         loss = q_latent_loss + self._commitment_cost * e_latent_loss
         return loss
 
-    def forward(self, inputs, corrupt_labels=False, **kwargs):
+    def forward(self, inputs, device, corrupt_labels=False, **kwargs):
 
         input_shape = inputs.size()
 
@@ -122,7 +122,8 @@ class ProductVectorQuantizer(VectorQuantizer):
                                      ]
         # FIX the code is not non-cuda compatible
         # encodings = [torch.zeros(encoding_indices.shape[0], self.codebook_size)
-        encodings = [torch.zeros(encoding_indices.shape[0], self.codebook_size).cuda(
+        encodings = [torch.zeros(encoding_indices.shape[0], self.codebook_size).to(
+            device=device,
             non_blocking=True)
             for encoding_indices in encoding_indices_list]
         for encoding, encoding_indices in zip(encodings, encoding_indices_list):

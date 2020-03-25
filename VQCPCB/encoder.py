@@ -72,19 +72,20 @@ class Encoder(nn.Module):
         if self.upscaler:
             self.upscaler.load_state_dict(torch.load(f'{model_dir}/upscaler'))
 
-    def forward(self, x, corrupt_labels=False):
+    def forward(self, x, device, corrupt_labels=False):
         """
 
         :param x: x comes from the dataloader
         :param corrupt_labels: if true, assign with probability 5% a different label than the computed centroid
         :return: z_quantized, encoding_indices, quantization_loss
         """
-        z = self.data_processor.preprocess(x)
+        z = self.data_processor.preprocess(x, device)
         z = self.data_processor.embed(z)
         z = flatten(z)
         z = self.downscaler.forward(z)
         z_quantized, encoding_indices, quantization_loss = self.quantizer.forward(
             z,
+            device=device,
             corrupt_labels=corrupt_labels
         )
 
@@ -228,6 +229,7 @@ class EncoderTrainer(nn.Module):
 
     def train_model(self,
                     batch_size,
+                    device,
                     num_batches=None,
                     num_epochs=10,
                     lr=1e-3,
@@ -253,7 +255,8 @@ class EncoderTrainer(nn.Module):
                 data_loader=generator_train,
                 train=True,
                 num_batches=num_batches,
-                corrupt_labels=corrupt_labels
+                corrupt_labels=corrupt_labels,
+                device=device
             )
 
             del generator_train
@@ -261,7 +264,8 @@ class EncoderTrainer(nn.Module):
                 data_loader=generator_val,
                 train=False,
                 num_batches=num_batches // 2 if num_batches is not None else None,
-                corrupt_labels=corrupt_labels
+                corrupt_labels=corrupt_labels,
+                device=device
             )
             del generator_val
             # self.scheduler.step(monitored_quantities_val["loss"])

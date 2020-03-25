@@ -14,7 +14,7 @@ class BachCPCDataProcessor(DataProcessor):
 
         self.num_tokens_per_block = num_tokens_per_block
 
-    def preprocess(self, x):
+    def preprocess(self, x, device):
         """
         Preprocess a dcpc block
 
@@ -37,7 +37,7 @@ class BachCPCDataProcessor(DataProcessor):
 
         num_blocks = x.size(1)
         x = x.view(*remaining_dims, num_blocks, self.num_tokens_per_block)
-        return x.long().cuda()
+        return x.long().to(device)
 
     def embed(self, block):
         """
