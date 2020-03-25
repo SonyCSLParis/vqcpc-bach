@@ -6,10 +6,9 @@ import torch
 from torch import nn
 from tqdm import tqdm
 
-from VQCPCB import auxiliary_dcpc
+from VQCPCB import vqcpc_helper
 from VQCPCB.encoder import EncoderTrainer
-from VQCPCB.losses import nce_loss
-from VQCPCB.utils import quantization_loss
+from VQCPCB.vqcpc_helper import quantization_loss, nce_loss
 
 
 class VQCPCEncoderTrainer(EncoderTrainer):
@@ -47,7 +46,7 @@ class VQCPCEncoderTrainer(EncoderTrainer):
         c_dim = c_net_kwargs['output_dim']
 
         #  C net
-        self.c_module = auxiliary_dcpc.CModule(
+        self.c_module = vqcpc_helper.CModule(
             input_dim=z_dim,
             hidden_size=c_net_kwargs['hidden_size'],
             output_dim=c_dim,
@@ -55,10 +54,10 @@ class VQCPCEncoderTrainer(EncoderTrainer):
             dropout=c_net_kwargs['dropout']
         )
 
-        self.fks_module = auxiliary_dcpc.FksModule(z_dim=z_dim,
-                                                   c_dim=c_dim,
-                                                   k_max=self.dataloader_generator.num_blocks_right,
-                                                   )
+        self.fks_module = vqcpc_helper.FksModule(z_dim=z_dim,
+                                                 c_dim=c_dim,
+                                                 k_max=self.dataloader_generator.num_blocks_right,
+                                                 )
 
         # optim
         self.quantization_weighting = quantization_weighting
@@ -66,7 +65,6 @@ class VQCPCEncoderTrainer(EncoderTrainer):
         self.scheduler = None
 
     def init_optimizers(self, lr=1e-3):
-        # TODO use radam
         self.optimizer = torch.optim.Adam(
             list(self.c_module.parameters()) +
             list(self.fks_module.parameters()) +
