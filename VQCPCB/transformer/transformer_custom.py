@@ -9,7 +9,7 @@ from torch.nn.init import xavier_uniform_
 from torch.nn.modules.module import Module
 from torch.nn.modules.transformer import _get_clones
 
-from VQCPCB.multihead_attention_custom import MultiheadAttentionCustom
+from VQCPCB.transformer.multihead_attention_custom import MultiheadAttentionCustom
 
 
 class TransformerCustom(Module):

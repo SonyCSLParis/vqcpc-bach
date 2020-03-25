@@ -1,9 +1,7 @@
-import random
-
 import torch
 import numpy as np
 from torch import nn
-from VQCPCB.transformer_custom import TransformerEncoderLayerCustom, TransformerEncoderCustom
+from VQCPCB.transformer.transformer_custom import TransformerEncoderLayerCustom, TransformerEncoderCustom
 
 
 class AuxiliaryDecoderRelative(nn.Module):

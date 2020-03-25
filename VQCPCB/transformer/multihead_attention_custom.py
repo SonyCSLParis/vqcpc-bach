@@ -1,14 +1,12 @@
-import time
-
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from VQCPCB.attentions.block_attention import BlockAttention
-from VQCPCB.attentions.block_positioning import BlockPositioning
-from VQCPCB.attentions.relative_attention import RelativeAttention
-from VQCPCB.attentions.relative_positioning import RelativePositioning
-from VQCPCB.attentions.subsampled_relative_attention import SubsampledRelativeAttention
+from VQCPCB.transformer.attentions.block_attention import BlockAttention
+from VQCPCB.transformer.attentions.block_positioning import BlockPositioning
+from VQCPCB.transformer.attentions.relative_attention import RelativeAttention
+from VQCPCB.transformer.attentions import RelativePositioning
+from VQCPCB.transformer.attentions import SubsampledRelativeAttention
 
 
 class MultiheadAttentionCustom(nn.Module):

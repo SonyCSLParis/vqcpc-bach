@@ -1,9 +1,7 @@
 from torch import nn
-from torch.nn import ModuleList, LayerNorm
-from torch.nn.modules import Transformer, TransformerEncoder, TransformerEncoderLayer
 import torch
 
-from VQCPCB.transformer_custom import TransformerEncoderLayerCustom, TransformerEncoderCustom
+from VQCPCB.transformer.transformer_custom import TransformerEncoderLayerCustom, TransformerEncoderCustom
 from VQCPCB.utils import flatten
 
 

@@ -14,10 +14,12 @@ from VQCPCB.getters import get_dataloader_generator, get_encoder, get_encoder_tr
 
 
 @click.command()
+@click.option('-t', '--train', is_flag=True)
 @click.option('-l', '--load', is_flag=True)
 @click.option('-c', '--config', type=click.Path(exists=True))
 @click.option('--num_workers', type=int, default=0)
-def main(load,
+def main(train,
+         load,
          num_workers,
          config,
          ):
@@ -71,7 +73,6 @@ def main(load,
 
     encoder_trainer.to(device)
 
-    train = True
     if train:
         # Copy .py config file in the save directory before training
         if not load:
@@ -121,7 +122,7 @@ def main(load,
 
     num_batches_clusters = 512
     encoder.plot_clusters(dataloader_generator_clusters, split='train', num_batches=num_batches_clusters)
-    # encoder.plot_clusters(dataloader_generator_clusters, split='val')
+    encoder.plot_clusters(dataloader_generator_clusters, split='val')
 
     if hasattr(encoder, 'show_NN_clusters'):
         encoder.show_NN_clusters()
@@ -129,9 +130,6 @@ def main(load,
     if hasattr(encoder, 'scatterplot_cluster_3D'):
         if encoder.quantizer.codebook_dim == 3:
             encoder.scatterplot_clusters_3D()
-
-    if hasattr(encoder, 'plot_MI'):
-        encoder.plot_MI(dataloader_generator_clusters, split='train', num_batches=10000, batch_size=32)
 
 
 if __name__ == '__main__':

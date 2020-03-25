@@ -178,7 +178,6 @@ def get_encoder(model_dir,
         )
 
         if config['upscaler_type'] is not None:
-            # upscaler_kwargs['input_dim'] = quantizer_kwargs['codebook_dim'] * quantizer_kwargs['num_codebooks']
             upscaler_kwargs['input_dim'] = quantizer_kwargs['codebook_dim']
             upscaler = get_upscaler(upscaler_type=config['upscaler_type'],
                                     upscaler_kwargs=upscaler_kwargs)

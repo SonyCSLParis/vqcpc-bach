@@ -1,7 +1,6 @@
-import numpy as np
 import torch
 
-from VQCPCB.attentions.block_positioning import BlockPositioning
+from VQCPCB.transformer.attentions.block_positioning import BlockPositioning
 
 
 class BlockAttention(BlockPositioning):

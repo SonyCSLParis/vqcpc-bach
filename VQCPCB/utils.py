@@ -27,28 +27,6 @@ def dict_pretty_print(d, endstr='\n'):
         else:
             print(f'{key.capitalize()}: {value:.6}', end=endstr)
 
-def chorale_accuracy(value, target):
-    """
-    :param value: list of (batch_size, chorale_length, num_notes)
-    :param target: (batch_size, num_voices, chorale_length)
-    :return:
-    """
-    batch_size, num_voices, chorale_length = target.size()
-    batch_size, chorale_length, _ = value[0].size()
-    num_voices = len(value)
-
-    # put num_voices first
-    target = target.transpose(0, 1)
-
-    sum = 0
-    for voice, voice_target in zip(value, target):
-        max_values, max_indexes = torch.max(voice, dim=2, keepdim=False)
-        num_correct = (max_indexes == voice_target).float().mean().item()
-        sum += num_correct
-
-    return sum / num_voices
-
-
 def categorical_crossentropy(value, target, mask=None):
     """
 
@@ -135,55 +113,6 @@ def timing_gpu():
     elapsed_time_ms = start_event.elapsed_time(end_event)
     print(f'T: {elapsed_time_ms}')
     # notes ##################################
-
-
-def plot_mi_marginals(px, py, mi_matrix, save_path):
-    nullfmt = NullFormatter()  # no labels
-    dim_x = len(px)
-    dim_y = len(py)
-    dim_max = max(dim_x, dim_y)
-
-    # definitions for the axes
-    left, width = 0.1, 0.65
-    bottom, height = 0.1, 0.65
-    bottom_h = left_h = left + width + 0.02
-
-    rect_scatter = [left, bottom, width, height]
-    rect_histx = [left, bottom_h, width, 0.2]
-    rect_histy = [left_h, bottom, 0.2, height]
-
-    # start with a rectangular Figure
-    # plt.figure(1, figsize=(dim_max, dim_max))
-    # Or fixed size perhaps ??
-    plt.figure(1, figsize=(8, 8))
-
-    axScatter = plt.axes(rect_scatter)
-    axHistx = plt.axes(rect_histx)
-    axHisty = plt.axes(rect_histy)
-
-    # no labels
-    axHistx.xaxis.set_major_formatter(nullfmt)
-    axHisty.yaxis.set_major_formatter(nullfmt)
-
-    # Plot MI
-    im = axScatter.imshow(mi_matrix, cmap='RdBu')
-    divider = make_axes_locatable(axScatter)
-    # create an axes on the right side of ax. The width of cax will be 1%
-    # of ax and the padding between cax and ax will be fixed at 0.05 inch.
-    cax = divider.append_axes("left", size="5%", pad=0.05)
-    axScatter.figure.colorbar(im, cax=cax)
-    axScatter.set_xlim((-0.5, dim_max - 0.5))
-    axScatter.set_ylim((-0.5, dim_max - 0.5))
-
-    # Plot marginals
-    colorbar_width = dim_max * 0.05
-    axHistx.bar(x=range(dim_y), height=py)
-    axHisty.barh(y=range(dim_x), width=np.flip(px))
-    axHistx.set_xlim((-0.5 - colorbar_width, dim_max - 0.5))
-    axHisty.set_ylim((-0.5, dim_max - 0.5))
-
-    plt.savefig(save_path)
-    return
 
 
 def top_k_top_p_filtering(logits, top_k=0, top_p=0.0, filter_value=-float('Inf')):

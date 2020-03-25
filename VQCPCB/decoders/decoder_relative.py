@@ -11,7 +11,7 @@ from tqdm import tqdm
 
 from VQCPCB.data_processor.data_processor import DataProcessor
 from VQCPCB.dataloaders.dataloader_generator import DataloaderGenerator
-from VQCPCB.transformer_custom import TransformerCustom, TransformerDecoderCustom, \
+from VQCPCB.transformer.transformer_custom import TransformerCustom, TransformerDecoderCustom, \
     TransformerEncoderCustom, \
     TransformerDecoderLayerCustom, TransformerEncoderLayerCustom
 from VQCPCB.utils import dict_pretty_print, cuda_variable, categorical_crossentropy, flatten, \

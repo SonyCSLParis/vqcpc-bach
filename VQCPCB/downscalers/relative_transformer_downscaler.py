@@ -3,7 +3,7 @@ import torch
 from torch import nn
 import numpy as np
 
-from VQCPCB.transformer_custom import TransformerEncoderLayerCustom, TransformerEncoderCustom
+from VQCPCB.transformer.transformer_custom import TransformerEncoderLayerCustom, TransformerEncoderCustom
 
 
 class RelativeTransformerDownscaler(nn.Module):

@@ -1,8 +1,6 @@
 import torch
 
 
-###################################
-# Embedding learning losses
 def nce_loss(positive, negatives):
     """
 
