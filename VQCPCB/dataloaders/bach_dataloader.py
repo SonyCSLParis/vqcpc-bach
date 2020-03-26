@@ -1,26 +1,24 @@
+import music21
 from VQCPCB.datasets.chorale_dataset import ChoraleBeatsDataset
-
 from VQCPCB.dataloaders.dataloader_generator import DataloaderGenerator
 
 subdivision = 4
 num_voices = 4
 
+
 class BachDataloaderGenerator(DataloaderGenerator):
     def __init__(self, sequences_size):
-
-        chorale_dataset_kwargs = {
-            'voice_ids': [0, 1, 2, 3],
-            'sequences_size': sequences_size,
-            'subdivision': subdivision,
-        }
-
-        dataset: ChoraleBeatsDataset = dataset_manager.get_dataset(
-            name='bach_chorales_beats',
-            **chorale_dataset_kwargs
+        super(BachDataloaderGenerator, self).__init__()
+        dataset = ChoraleBeatsDataset(
+            corpus_it_gen=music21.corpus.chorales.Iterator,
+            voice_ids=[0, 1, 2, 3],
+            metadatas=[],
+            sequences_size=sequences_size,
+            subdivision=subdivision,
         )
-        super(BachDataloaderGenerator, self).__init__(dataset=dataset)
+        self.dataset = dataset
 
-    def dataloaders(self, batch_size, num_workers=0,  shuffle_train=True,
+    def dataloaders(self, batch_size, num_workers=0, shuffle_train=True,
                     shuffle_val=False):
         # discard metadata
         # and put num_channels (num_voices) at the last dimension

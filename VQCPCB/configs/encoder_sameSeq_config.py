@@ -6,7 +6,7 @@ num_voices = 4
 num_tokens_per_block = num_beats * subdivision * num_voices
 num_block_left = 6
 num_block_right = 6
-sequences_size = num_block_left * num_beats
+sequences_size = num_beats
 
 config = {
     'training_method': 'vqcpc',  # vqcpc or student
@@ -16,7 +16,7 @@ config = {
     'dataloader_generator_kwargs': dict(num_tokens_per_block=num_tokens_per_block,
                                         num_blocks_left=num_block_left,
                                         num_blocks_right=num_block_right,
-                                        negative_sampling_method='random',  # random or same_sequence
+                                        negative_sampling_method='same_sequence',  # random or same_sequence
                                         num_negative_samples=15,            # useless in the same_sequence case
                                         sequences_size=sequences_size,      # used only for visualising clusters
                                         ),
@@ -71,9 +71,9 @@ config = {
 
     # ======== Training ========
     'lr': 1e-4,
-    'batch_size': 8,
-    'num_batches': None,
-    'num_epochs': 4000,
+    'batch_size': 2,
+    'num_batches': 2,
+    'num_epochs': 2,
     'quantizer_regularization': dict(
         corrupt_labels=False
     ),

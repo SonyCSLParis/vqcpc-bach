@@ -94,7 +94,7 @@ class Encoder(nn.Module):
 
         return z_quantized, encoding_indices, quantization_loss
 
-    def plot_clusters(self, dataloader_generator, split_name, batch_size=32, num_batches=64):
+    def plot_clusters(self, dataloader_generator, device, split_name, batch_size=32, num_batches=64):
         """
         Visualize elements belonging to the same cluster
         Elements belong to the training set
@@ -124,7 +124,7 @@ class Encoder(nn.Module):
         for k, tensor_dict in enumerate(generator):
             with torch.no_grad():
                 original_x = tensor_dict['x']
-                z_quantized, encoding_indices, quantization_loss = self.forward(original_x)
+                z_quantized, encoding_indices, quantization_loss = self.forward(original_x, device=device)
 
                 num_events_for_one_index = int(np.product(self.downscaler.downscale_factors) // \
                                                len(self.data_processor.num_tokens_per_channel)
@@ -155,10 +155,14 @@ class Encoder(nn.Module):
             # keep only a limited number of examples
             list_elements = list_elements[:50]
             # to score
-            tensor_score = self.data_processor.list_to_tensor(list_elements)
-            score = dataloader_generator.to_score(tensor_score)
-            self.data_processor.write(score, save_path)
-            print(f'File {save_path} saved')
+            tensor_score = self.data_processor.postprocess(list_elements)
+            dataloader_generator.write(tensor_score, save_path)
+
+            #
+            # tensor_score = self.data_processor.list_to_tensor(list_elements)
+            # score = dataloader_generator.to_score(tensor_score)
+            # self.data_processor.write(score, save_path)
+            # print(f'File {save_path} saved')
         return
 
     def show_nn_clusters(self, k=3):

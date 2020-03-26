@@ -34,7 +34,7 @@ class BachCPCDataloaderGenerator(CPCDataloaderGenerator):
             num_negative_samples)
         # load dataset
         datasets = self._dataset()
-        self.dataset = datasets['positive']
+        self.dataset_positive = datasets['positive']
         self.dataset_negative = datasets['negative']
         self.num_channels = num_voices
 
@@ -51,16 +51,12 @@ class BachCPCDataloaderGenerator(CPCDataloaderGenerator):
 
             # Positive dataset
             num_beats_positive = num_tokens // num_tokens_per_beat
-            chorale_dataset_positive_kwargs = {
-                'voice_ids': [0, 1, 2, 3],
-                'metadatas': None,
-                'sequences_size': num_beats_positive,
-                'subdivision': subdivision,
-            }
-
-            dataset: ChoraleBeatsDataset = dataset_manager.get_dataset(
-                name='bach_chorales_beats',
-                **chorale_dataset_positive_kwargs
+            dataset = ChoraleBeatsDataset(
+                corpus_it_gen=music21.corpus.chorales.Iterator,
+                voice_ids=[0, 1, 2, 3],
+                metadatas=[],
+                sequences_size=num_beats_positive,
+                subdivision=subdivision,
             )
             return dict(positive=dataset, negative=None)
 
@@ -123,10 +119,10 @@ class BachCPCDataloaderGenerator(CPCDataloaderGenerator):
         # dataset should be initialized by self._dataset
         # WARNING self.num_negative_samples parameter is not used
         num_negative_samples = self.num_blocks_right + self.num_blocks_left - 1
-        assert self.dataset is not None
+        assert self.dataset_positive is not None
         num_tokens_left = self.num_tokens_per_block * self.num_blocks_left
 
-        dataloaders = self.dataset.data_loaders(
+        dataloaders = self.dataset_positive.data_loaders(
             batch_size=batch_size,
             num_workers=num_workers
         )
@@ -190,10 +186,10 @@ class BachCPCDataloaderGenerator(CPCDataloaderGenerator):
         """
 
         # dataset should be initialized by self._dataset
-        assert self.dataset is not None
+        assert self.dataset_positive is not None
         num_tokens_left = self.num_tokens_per_block * self.num_blocks_left
 
-        positive_dataloaders = self.dataset.data_loaders(
+        positive_dataloaders = self.dataset_positive.data_loaders(
             batch_size=batch_size,
             num_workers=num_workers,
             indexed_dataloaders=False

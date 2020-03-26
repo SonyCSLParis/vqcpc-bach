@@ -484,7 +484,6 @@ class ChoraleBeatsDataset(Dataset):
         padded_tensor_metadata = []
 
         if start_tick < 0:
-            # TODO more subtle padding
             start_symbols = np.zeros((self.num_voices, -start_tick, num_metadatas))
             start_symbols = torch.from_numpy(start_symbols).long().clone()
             padded_tensor_metadata.append(start_symbols)
@@ -503,26 +502,7 @@ class ChoraleBeatsDataset(Dataset):
         padded_tensor_metadata = torch.cat(padded_tensor_metadata, 1)
         return padded_tensor_metadata
 
-    def _empty_score_tensor(self, score_length):
-        raise NotImplementedError
-        # todo : END_SYMBOL and PAD_SYMBOL ?????
-        start_symbols = np.array([note2index[START_SYMBOL]
-                                  for note2index in self.note2index_dicts])
-        start_symbols = torch.from_numpy(start_symbols).long().clone()
-        start_symbols = start_symbols.repeat(score_length, 1).transpose(0, 1)
-        return start_symbols
-
-    def _random_score_tensor(self, score_length):
-        raise NotImplementedError
-        chorale_tensor = np.array(
-            [np.random.randint(len(note2index),
-                               size=score_length)
-             for note2index in self.note2index_dicts])
-        chorale_tensor = torch.from_numpy(chorale_tensor).long().clone()
-        return chorale_tensor
-
     def tensor_to_score(self, tensor_score):
-        raise NotImplementedError
         """
         :param tensor_score: (num_voices, length)
         :return: music21 score object

@@ -505,7 +505,7 @@ def get_data_processor(dataloader_generator,
 
     elif data_processor_type == 'bach_cpc':
         # compute num_events num_tokens_per_channel
-        dataset = dataloader_generator.dataset
+        dataset = dataloader_generator.dataset_positive
         num_tokens_per_block = dataloader_generator.num_tokens_per_block
         num_channels = dataloader_generator.num_channels
         num_events = dataset.sequences_size * dataset.subdivision

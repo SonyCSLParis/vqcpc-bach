@@ -31,7 +31,8 @@ def main(train,
     else:
         device = 'cuda'
 
-    # Load config
+    ######################################################
+    # Get configuration
     config_path = config
     config_module_name = os.path.splitext(config)[0].replace('/', '.')
     config = importlib.import_module(config_module_name).config
@@ -39,7 +40,7 @@ def main(train,
     if config['timestamp'] is not None:
         timestamp = config['timestamp']
     else:
-        timestamp = datetime.now().strftime('%Y-%m-%d_%H:%M:%S')
+        timestamp = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
         config['timestamp'] = timestamp
     if load:
         model_dir = os.path.dirname(config_path)
@@ -48,13 +49,14 @@ def main(train,
     # Add dynamic parameters to corresponding dicts
     config['quantizer_kwargs']['initialize'] = not load
 
+    ######################################################
+    # Get model
     dataloader_generator = get_dataloader_generator(
         dataset=config['dataset'],
         training_method=config['training_method'],
         dataloader_generator_kwargs=config['dataloader_generator_kwargs'],
     )
 
-    # Append previous encoders
     encoder = get_encoder(model_dir=model_dir,
                           dataloader_generator=dataloader_generator,
                           config=config
@@ -73,6 +75,8 @@ def main(train,
 
     encoder_trainer.to(device)
 
+    ######################################################
+    # Train
     if train:
         # Copy .py config file in the save directory before training
         if not load:
@@ -90,46 +94,30 @@ def main(train,
             num_workers=num_workers,
         )
 
-    # Generate clusters
+    ######################################################
+    # Explore clusters
     dataloader_generator_clusters = get_dataloader_generator(
         dataset=config['dataset'],
         training_method='decoder',
         dataloader_generator_kwargs=config['dataloader_generator_kwargs']
     )
 
-    if hasattr(encoder, 'encode_score') and config['dataset'] == 'harpsichord':
-        scores = [
-            'classic_piano_dataset/beethoven_hammerklavier_1_format0.mid',
-            'classic_piano_dataset/alb_esp1_format0.mid',
-            'ecomp_piano_dataset/Bach03.mid'
-        ]
-        db_dir = f'{os.path.expanduser("~")}/Data/databases/Piano'
-        num_block_to_write = 50
-        write_dir = f'{encoder.model_dir}/encoded_scores/'
-        if not os.path.isdir(write_dir):
-            os.mkdir(write_dir)
-        for score in scores:
-            abs_path = f'{db_dir}/{score}'
-            codes = encoder.encode_score(dataloader_generator_clusters, abs_path, num_blocks=num_block_to_write)
-            write_name_midi = re.sub('/', '__', score)
-            write_name_txt = re.sub('.mid', '.txt', write_name_midi)
-            save_path = f'{write_dir}/{write_name_txt}'
-            codes_str = [str(e) for e in codes]
-            codes_str = ' - '.join(codes_str)
-            with open(save_path, 'w') as ff:
-                ff.write(codes_str)
-            shutil.copyfile(abs_path, f'{write_dir}/{write_name_midi}')
-
     num_batches_clusters = 512
-    encoder.plot_clusters(dataloader_generator_clusters, split='train', num_batches=num_batches_clusters)
-    encoder.plot_clusters(dataloader_generator_clusters, split='val')
+    encoder.plot_clusters(dataloader_generator_clusters,
+                          device=device,
+                          split_name='train',
+                          num_batches=num_batches_clusters)
+    encoder.plot_clusters(dataloader_generator_clusters,
+                          device=device,
+                          split_name='val',
+                          num_batches=num_batches_clusters)
 
-    if hasattr(encoder, 'show_NN_clusters'):
-        encoder.show_NN_clusters()
+    if hasattr(encoder, 'show_nn_clusters'):
+        encoder.show_nn_clusters()
 
-    if hasattr(encoder, 'scatterplot_cluster_3D'):
+    if hasattr(encoder, 'scatterplot_cluster_3d'):
         if encoder.quantizer.codebook_dim == 3:
-            encoder.scatterplot_clusters_3D()
+            encoder.scatterplot_clusters_3d()
 
 
 if __name__ == '__main__':
