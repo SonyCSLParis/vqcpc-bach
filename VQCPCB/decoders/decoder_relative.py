@@ -23,7 +23,7 @@ class DecoderRelative(nn.Module):
                  model_dir,
                  dataloader_generator: DataloaderGenerator,
                  data_processor: DataProcessor,
-                 encoders_stack,
+                 encoder,
                  d_model,
                  num_encoder_layers,
                  num_decoder_layers,
@@ -55,10 +55,10 @@ class DecoderRelative(nn.Module):
         """
         super(DecoderRelative, self).__init__()
         self.model_dir = model_dir
-        self.encoders_stack = encoders_stack
+        self.encoder = encoder
         # freeze encoder
-        self.encoders_stack.eval()
-        for p in self.encoders_stack.parameters():
+        self.encoder.eval()
+        for p in self.encoder.parameters():
             p.requires_grad = False
 
         self.dataloader_generator = dataloader_generator
@@ -71,7 +71,7 @@ class DecoderRelative(nn.Module):
         self.num_tokens_target = self.data_processor.num_tokens
         assert self.num_tokens_target == num_channels_decoder * num_events_decoder
 
-        self.total_upscaling = int(np.prod(self.encoders_stack.downscale_factors))
+        self.total_upscaling = int(np.prod(self.encoder.downscaler.downscale_factors))
         assert self.num_tokens_target % self.total_upscaling == 0
 
         self.target_channel_embeddings = nn.Parameter(
@@ -82,21 +82,15 @@ class DecoderRelative(nn.Module):
 
         self.num_events_per_code = self.total_upscaling // self.num_channels
         # Position relative to a code
-        # Todo is it relevant for piano / harpsichord ?
         self.target_events_positioning_embeddings = nn.Parameter(
             torch.randn((1,
                          self.num_events_per_code,
                          positional_embedding_size))
         )
 
-        # TODO factorised positional embeddings
         # we use the codebook_dim as the embedding dim of the source tokens
-        self.source_embedding_dim = self.encoders_stack.codebook_dim
-
-        # TODO put the whole model in DataParallel
-        self.codebook_size = (self.encoders_stack.codebook_size **
-                              self.encoders_stack.num_codebooks) ** \
-                             self.encoders_stack.num_encoders
+        self.source_embedding_dim = self.encoder.quantizer.codebook_dim
+        self.codebook_size = self.encoder.quantizer.codebook_size ** self.encoder.quantizer.num_codebooks
         self.source_embeddings = nn.Embedding(
             self.codebook_size, self.source_embedding_dim
         )
@@ -115,7 +109,7 @@ class DecoderRelative(nn.Module):
             d_model=d_model,
             nhead=n_head,
             attention_bias_type_self='relative_attention',
-            attention_bias_type_cross='relative_attention_target_source',
+            attention_bias_type_cross='relative_attention',
             num_channels_encoder=num_channels_encoder,
             num_events_encoder=num_events_encoder,
             num_channels_decoder=num_channels_decoder,
@@ -194,7 +188,7 @@ class DecoderRelative(nn.Module):
 
         self.load_state_dict(torch.load(f'{model_dir}/decoder'))
 
-    def forward(self, source, target):
+    def forward(self, source, target, device):
         """
         :param source: sequence of codebooks (batch_size, s_s)
         :param target: sequence of tokens (batch_size, num_events, num_channels)
@@ -205,7 +199,7 @@ class DecoderRelative(nn.Module):
         source_seq = self.source_embeddings(source)
         source_seq = self.linear_source(source_seq)
 
-        target = self.data_processor.preprocess(target)
+        target = self.data_processor.preprocess(target, device=device)
         target_embedded = self.data_processor.embed(target)
         target_seq = flatten(target_embedded)
 
@@ -279,7 +273,7 @@ class DecoderRelative(nn.Module):
         mask = mask.float().masked_fill(mask == 0, float('-inf')).masked_fill(mask == 1, float(0.0))
         return mask
 
-    def epoch(self, data_loader,
+    def epoch(self, data_loader, device,
               train=True,
               num_batches=None,
               ):
@@ -287,7 +281,7 @@ class DecoderRelative(nn.Module):
 
         if train:
             self.train()
-            self.encoders_stack.eval()
+            self.encoder.eval()
         else:
             self.eval()
 
@@ -299,16 +293,20 @@ class DecoderRelative(nn.Module):
             with torch.no_grad():
                 x = tensor_dict['x']
                 # compute encoding_indices version
-                encoding_indices_stack = self.encoders_stack(x)
-                # merge the codes
-                # todo To be removed when channel-wise decoder on codes has been implemented
-                encoding_indices = self.encoders_stack.merge_codes(encoding_indices_stack)
+                _, codes, _ = self.encoder(x, device=device)
+                # Merge codes
+                _, _, num_encoders = codes.shape
+                ret = codes[:, :, 0]
+                for encoder_index in range(1, num_encoders):
+                    ret += codes[:, :, encoder_index] * (self.codebook_size ** encoder_index)
+                encoding_indices = ret
 
             # ========Train decoder =============
             self.optimizer.zero_grad()
             forward_pass = self.forward(
                 encoding_indices,
-                x
+                x,
+                device=device
             )
             loss = forward_pass['loss']
             if train:
@@ -340,6 +338,7 @@ class DecoderRelative(nn.Module):
 
     def train_model(self,
                     batch_size,
+                    device,
                     num_batches=None,
                     num_epochs=10,
                     lr=1e-3,
@@ -361,6 +360,7 @@ class DecoderRelative(nn.Module):
 
             monitored_quantities_train = self.epoch(
                 data_loader=generator_train,
+                device=device,
                 train=True,
                 num_batches=num_batches,
             )
@@ -368,6 +368,7 @@ class DecoderRelative(nn.Module):
 
             monitored_quantities_val = self.epoch(
                 data_loader=generator_val,
+                device=device,
                 train=False,
                 num_batches=num_batches // 2 if num_batches is not None else None,
             )

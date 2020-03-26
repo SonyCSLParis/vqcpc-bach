@@ -60,7 +60,7 @@ class SubsampledRelativeAttention(nn.Module):
              ], dim=1
         )
 
-        #  SKEWWWIIIIING (src + tgt + 1) * (src + tgt + 1) -> x * tgt
+        #  skewing
         rel_attn_1 = rel_attn_1.view(batch_size, -1, self.seq_len_src)
         #  need to remove first line here
         rel_attn_1 = rel_attn_1[:, 1:]

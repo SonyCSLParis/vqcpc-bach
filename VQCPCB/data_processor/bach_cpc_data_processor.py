@@ -71,7 +71,3 @@ class BachCPCDataProcessor(DataProcessor):
         tensor_score = torch.cat(list_elements, dim=0)
         tensor_score = to_numpy(tensor_score)
         return tensor_score
-
-    def write(self, score, path):
-        score.write('xml', f'{path}.xml')
-        return

@@ -65,7 +65,7 @@ class DataProcessor(nn.Module):
             for k, v in tensor_dict.items()
         }
 
-    def preprocess(self, x):
+    def preprocess(self, x, device):
         """
         Subclasses can only reimplement this method
         This is not necessary
@@ -73,7 +73,7 @@ class DataProcessor(nn.Module):
         :param x: ? -> (batch_size, num_events, num_channels)
         :return:
         """
-        return x.long().cuda()
+        return x.long().to(device)
 
     def postprocess(self, original, reconstruction):
         """

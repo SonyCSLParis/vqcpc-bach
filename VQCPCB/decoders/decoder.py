@@ -208,9 +208,9 @@ class Decoder(nn.Module):
               train=True,
               num_batches=None,
               ):
-        # FIXME
-        # if num_batches is None or num_batches > len(data_loader):
-        #     num_batches = len(data_loader)
+        # Safeguard
+        if num_batches is None or num_batches > len(data_loader):
+            num_batches = len(data_loader)
 
         means = None
 
@@ -224,13 +224,13 @@ class Decoder(nn.Module):
                 islice(data_loader, num_batches)),
                 ncols=80):
 
-            # ======== ==================
+            # ======== Get codes from Encoder ==================
             with torch.no_grad():
                 x = tensor_dict['x']
                 # compute encoding_indices version
                 z_quantized, encoding_indices, quantization_loss = self.encoder(x)
 
-            # ========Train decoder =============
+            # ======== Train decoder =============
             self.optimizer.zero_grad()
             forward_pass = self.forward(
                 encoding_indices,

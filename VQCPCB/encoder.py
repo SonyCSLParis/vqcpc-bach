@@ -6,6 +6,7 @@ from torch import nn
 from torch.utils.tensorboard import SummaryWriter
 import numpy as np
 from VQCPCB.utils import dict_pretty_print, flatten
+import matplotlib.pyplot as plt
 
 
 class Encoder(nn.Module):
@@ -192,7 +193,7 @@ class Encoder(nn.Module):
             ax.scatter(x[i], y[i], z[i], color='b')
             ax.text(x[i], y[i], z[i], '%s' % (str(i)), size=12, zorder=1, color='k')
 
-        ## Hovering stuff, works, but need tkinter mother fucking shit which does not work on my computer
+        ## Hovering stuff, think it works, but need tkinter fucking shit which does not work on my computer
         # # now try to get the display coordinates of the first point
         #
         # x2, y2, _ = proj3d.proj_transform(1, 1, 1, ax.get_proj())

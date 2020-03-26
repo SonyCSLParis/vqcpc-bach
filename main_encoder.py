@@ -115,7 +115,7 @@ def main(train,
     if hasattr(encoder, 'show_nn_clusters'):
         encoder.show_nn_clusters()
 
-    if hasattr(encoder, 'scatterplot_cluster_3d'):
+    if hasattr(encoder, 'scatterplot_clusters_3d'):
         if encoder.quantizer.codebook_dim == 3:
             encoder.scatterplot_clusters_3d()
 

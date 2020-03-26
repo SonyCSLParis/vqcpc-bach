@@ -1,12 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-
-from VQCPCB.transformer.attentions.block_attention import BlockAttention
-from VQCPCB.transformer.attentions.block_positioning import BlockPositioning
-from VQCPCB.transformer.attentions.relative_attention import RelativeAttention
-from VQCPCB.transformer.attentions.relative_positioning import RelativePositioning
-from VQCPCB.transformer.attentions.subsampled_relative_attention import SubsampledRelativeAttention
+from VQCPCB.transformer.subsampled_relative_attention import SubsampledRelativeAttention
 
 
 class MultiheadAttentionCustom(nn.Module):
@@ -74,43 +69,17 @@ class MultiheadAttentionCustom(nn.Module):
 
         self.add_zero_attn = add_zero_attn
 
-        seq_len_out = num_channels_q * num_events_q
-        if attention_bias_type == 'relative_positioning':
-            self.attn_bias = RelativePositioning(num_heads=num_heads,
-                                                 seq_len=seq_len_out)
-        elif attention_bias_type == 'relative_attention':
-            self.attn_bias = RelativeAttention(head_dim=self.head_dim,
-                                               num_heads=num_heads,
-                                               max_seq_len=seq_len_out
-                                               )
-        elif attention_bias_type == 'relative_attention_target_source':
+        if attention_bias_type == 'no_attention_bias':
+            self.attn_bias = None
+        elif 'relative_attention':
             self.attn_bias = SubsampledRelativeAttention(
                 head_dim=self.head_dim,
                 num_heads=num_heads,
                 seq_len_src=num_channels_k * num_events_k,
                 seq_len_tgt=num_channels_q * num_events_q
             )
-        elif attention_bias_type == 'block_positioning':
-            self.attn_bias = BlockPositioning(head_dim=1,  # has to be 1 in that case
-                                              num_heads=num_heads,
-                                              num_channels_k=num_channels_k,
-                                              num_events_k=num_events_k,
-                                              num_channels_q=num_channels_q,
-                                              num_events_q=num_events_q
-                                              )
-        elif attention_bias_type == 'block_attention':
-            self.attn_bias = BlockAttention(head_dim=self.head_dim,
-                                            num_heads=num_heads,
-                                            num_channels_k=num_channels_k,
-                                            num_events_k=num_events_k,
-                                            num_channels_q=num_channels_q,
-                                            num_events_q=num_events_q
-                                            )
-        elif attention_bias_type == 'no_bias':
-            self.attn_bias = None
         else:
-            raise ValueError(f'{attention_bias_type} is not a valid type of attention bias')
-
+            raise NotImplementedError('Not a valid type of attention bias')
         self._reset_parameters()
 
     def _reset_parameters(self):

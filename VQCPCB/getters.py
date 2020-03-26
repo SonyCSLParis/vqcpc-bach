@@ -203,12 +203,7 @@ def get_encoder(model_dir,
 
         # add required parameters to downscaler_kwargs
         downscaler_kwargs['input_dim'] = data_processor.embedding_size
-        if config['quantizer_type'] == 'commitment':
-            downscaler_kwargs['output_dim'] = quantizer_kwargs['codebook_dim']
-        elif config['quantizer_type'] == 'gumbel_softmax':
-            downscaler_kwargs['output_dim'] = quantizer_kwargs['codebook_size']
-        else:
-            raise ValueError
+        downscaler_kwargs['output_dim'] = quantizer_kwargs['codebook_dim']
         downscaler_kwargs['num_tokens'] = data_processor.num_tokens
         downscaler_kwargs['num_channels'] = data_processor.num_channels
         downscaler = get_downscaler(downscaler_type=config['downscaler_type'],
@@ -307,47 +302,22 @@ def get_auxiliary_decoder(auxiliary_decoder_type,
 def get_decoder(model_dir,
                 dataloader_generator,
                 data_processor,
-                encoders_stack,
+                encoder,
                 decoder_type,
                 decoder_kwargs):
-    # todo write Decoder base class
     num_channels_decoder = data_processor.num_channels
     num_events_decoder = data_processor.num_events
-
-    # todo if product of codebooks is used, assign each codebook to a different channel
     num_channels_encoder = 1
     num_events_encoder = int((num_events_decoder * num_channels_decoder) // \
-                             (np.prod(encoders_stack.downscale_factors) *
+                             (np.prod(encoder.downscaler.downscale_factors) *
                               num_channels_encoder)
                              )
-
-    if decoder_type == 'weak_transformer':
-        decoder = WeakDecoder(
-            model_dir=model_dir,
-            dataloader_generator=dataloader_generator,
-            data_processor=data_processor,
-            encoders_stack=encoders_stack,
-            d_model=decoder_kwargs['d_model'],
-            num_encoder_layers=decoder_kwargs['num_encoder_layers'],
-            num_decoder_layers=decoder_kwargs['num_decoder_layers'],
-            n_head=decoder_kwargs['n_head'],
-            dim_feedforward=decoder_kwargs['dim_feedforward'],
-            dropout=decoder_kwargs['dropout'],
-            positional_embedding_size=decoder_kwargs['positional_embedding_size'],
-            attention_bias_encoder=decoder_kwargs['attention_bias_encoder'],
-            attention_bias_decoder_self=decoder_kwargs['attention_bias_decoder_self'],
-            attention_bias_decoder_cross=decoder_kwargs['attention_bias_decoder_cross'],
-            num_channels_encoder=num_channels_encoder,
-            num_events_encoder=num_events_encoder,
-            num_channels_decoder=num_channels_decoder,
-            num_events_decoder=num_events_decoder,
-        )
-    elif decoder_type == 'transformer':
+    if decoder_type == 'transformer':
         decoder = Decoder(
             model_dir=model_dir,
             dataloader_generator=dataloader_generator,
             data_processor=data_processor,
-            encoders_stack=encoders_stack,
+            encoder=encoder,
             d_model=decoder_kwargs['d_model'],
             num_encoder_layers=decoder_kwargs['num_encoder_layers'],
             num_decoder_layers=decoder_kwargs['num_decoder_layers'],
@@ -355,34 +325,13 @@ def get_decoder(model_dir,
             dim_feedforward=decoder_kwargs['dim_feedforward'],
             dropout=decoder_kwargs['dropout'],
             positional_embedding_size=decoder_kwargs['positional_embedding_size'],
-        )
-    elif decoder_type == 'transformer_custom':
-        decoder = DecoderCustom(
-            model_dir=model_dir,
-            dataloader_generator=dataloader_generator,
-            data_processor=data_processor,
-            encoders_stack=encoders_stack,
-            d_model=decoder_kwargs['d_model'],
-            num_encoder_layers=decoder_kwargs['num_encoder_layers'],
-            num_decoder_layers=decoder_kwargs['num_decoder_layers'],
-            n_head=decoder_kwargs['n_head'],
-            dim_feedforward=decoder_kwargs['dim_feedforward'],
-            dropout=decoder_kwargs['dropout'],
-            positional_embedding_size=decoder_kwargs['positional_embedding_size'],
-            attention_bias_encoder=decoder_kwargs['attention_bias_encoder'],
-            attention_bias_decoder_self=decoder_kwargs['attention_bias_decoder_self'],
-            attention_bias_decoder_cross=decoder_kwargs['attention_bias_decoder_cross'],
-            num_channels_encoder=num_channels_encoder,
-            num_events_encoder=num_events_encoder,
-            num_channels_decoder=num_channels_decoder,
-            num_events_decoder=num_events_decoder,
         )
     elif decoder_type == 'transformer_relative':
         decoder = DecoderRelative(
             model_dir=model_dir,
             dataloader_generator=dataloader_generator,
             data_processor=data_processor,
-            encoders_stack=encoders_stack,
+            encoder=encoder,
             d_model=decoder_kwargs['d_model'],
             num_encoder_layers=decoder_kwargs['num_encoder_layers'],
             num_decoder_layers=decoder_kwargs['num_decoder_layers'],
