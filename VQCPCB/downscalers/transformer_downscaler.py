@@ -3,7 +3,7 @@ from torch import nn
 from torch.nn.modules import TransformerEncoderLayer
 
 from VQCPCB.downscalers.downscaler import Downscaler
-from VQCPCB.utils import flatten
+from VQCPCB.utils import flatten, cuda_variable
 
 
 class TransformerDownscaler(Downscaler):
@@ -127,4 +127,4 @@ class TransformerDownscaler(Downscaler):
         mask = torch.eye(sequence_size // block_size) \
             .repeat_interleave(block_size, dim=0). \
             repeat_interleave(block_size, dim=1)
-        return mask.to('cuda')
+        return cuda_variable(mask)

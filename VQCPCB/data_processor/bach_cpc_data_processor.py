@@ -2,7 +2,7 @@ import numpy as np
 import torch
 
 from VQCPCB.data_processor.data_processor import DataProcessor
-from VQCPCB.utils import to_numpy
+from VQCPCB.utils import to_numpy, cuda_variable
 
 
 class BachCPCDataProcessor(DataProcessor):
@@ -14,7 +14,7 @@ class BachCPCDataProcessor(DataProcessor):
 
         self.num_tokens_per_block = num_tokens_per_block
 
-    def preprocess(self, x, device):
+    def preprocess(self, x):
         """
         Preprocess a dcpc block
 
@@ -37,7 +37,7 @@ class BachCPCDataProcessor(DataProcessor):
 
         num_blocks = x.size(1)
         x = x.view(*remaining_dims, num_blocks, self.num_tokens_per_block)
-        return x.long().to(device)
+        return cuda_variable(x.long())
 
     def embed(self, block):
         """

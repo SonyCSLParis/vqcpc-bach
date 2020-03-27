@@ -1,7 +1,8 @@
 import os
 from datetime import datetime
 from itertools import islice
-
+import matplotlib.pyplot as plt
+import seaborn as sns
 import numpy as np
 import torch
 from VQCPCB.datasets.chorale_dataset import PAD_SYMBOL, START_SYMBOL, END_SYMBOL
@@ -13,7 +14,7 @@ from VQCPCB.data_processor.data_processor import DataProcessor
 from VQCPCB.dataloaders.dataloader_generator import DataloaderGenerator
 from VQCPCB.transformer.transformer_custom import TransformerCustom, TransformerDecoderCustom, \
     TransformerEncoderCustom, \
-    TransformerDecoderLayerCustom, TransformerEncoderLayerCustom
+    TransformerDecoderLayerCustom, TransformerEncoderLayerCustom, TransformerAlignedDecoderLayerCustom
 from VQCPCB.utils import dict_pretty_print, cuda_variable, categorical_crossentropy, flatten, \
     to_numpy, top_k_top_p_filtering
 
@@ -24,6 +25,7 @@ class DecoderRelative(nn.Module):
                  dataloader_generator: DataloaderGenerator,
                  data_processor: DataProcessor,
                  encoder,
+                 diagonal_cross_attention,
                  d_model,
                  num_encoder_layers,
                  num_decoder_layers,
@@ -105,18 +107,33 @@ class DecoderRelative(nn.Module):
             dim_feedforward=dim_feedforward,
             dropout=dropout
         )
-        decoder_layer = TransformerDecoderLayerCustom(
-            d_model=d_model,
-            nhead=n_head,
-            attention_bias_type_self='relative_attention',
-            attention_bias_type_cross='relative_attention',
-            num_channels_encoder=num_channels_encoder,
-            num_events_encoder=num_events_encoder,
-            num_channels_decoder=num_channels_decoder,
-            num_events_decoder=num_events_decoder,
-            dim_feedforward=dim_feedforward,
-            dropout=dropout
-        )
+
+        if diagonal_cross_attention:
+            decoder_layer = TransformerAlignedDecoderLayerCustom(
+                d_model=d_model,
+                nhead=n_head,
+                attention_bias_type_self='relative_attention',
+                attention_bias_type_cross=None,
+                num_channels_encoder=num_channels_encoder,
+                num_events_encoder=num_events_encoder,
+                num_channels_decoder=num_channels_decoder,
+                num_events_decoder=num_events_decoder,
+                dim_feedforward=dim_feedforward,
+                dropout=dropout
+            )
+        else:
+            decoder_layer = TransformerDecoderLayerCustom(
+                d_model=d_model,
+                nhead=n_head,
+                attention_bias_type_self='relative_attention',
+                attention_bias_type_cross='relative_attention',
+                num_channels_encoder=num_channels_encoder,
+                num_events_encoder=num_events_encoder,
+                num_channels_decoder=num_channels_decoder,
+                num_events_decoder=num_events_decoder,
+                dim_feedforward=dim_feedforward,
+                dropout=dropout
+            )
 
         custom_encoder = TransformerEncoderCustom(
             encoder_layer=encoder_layer,
@@ -188,7 +205,7 @@ class DecoderRelative(nn.Module):
 
         self.load_state_dict(torch.load(f'{model_dir}/decoder'))
 
-    def forward(self, source, target, device):
+    def forward(self, source, target):
         """
         :param source: sequence of codebooks (batch_size, s_s)
         :param target: sequence of tokens (batch_size, num_events, num_channels)
@@ -199,7 +216,7 @@ class DecoderRelative(nn.Module):
         source_seq = self.source_embeddings(source)
         source_seq = self.linear_source(source_seq)
 
-        target = self.data_processor.preprocess(target, device=device)
+        target = self.data_processor.preprocess(target)
         target_embedded = self.data_processor.embed(target)
         target_seq = flatten(target_embedded)
 
@@ -229,14 +246,15 @@ class DecoderRelative(nn.Module):
             ],
             dim=0)
 
-        target_mask = cuda_variable(
-            self._generate_square_subsequent_mask(target_seq.size(0))
-        )
+        #
+        source_mask = cuda_variable(self._generate_square_subsequent_mask(source_seq.size(0))).t()
+        target_mask = cuda_variable(self._generate_square_subsequent_mask(target_seq.size(0)))
 
         # for custom
         output, attentions_decoder, attentions_encoder = self.transformer(source_seq,
                                                                           target_seq,
-                                                                          tgt_mask=target_mask
+                                                                          tgt_mask=target_mask,
+                                                                          src_mask=source_mask
                                                                           )
 
         output = output.transpose(0, 1).contiguous()
@@ -273,7 +291,7 @@ class DecoderRelative(nn.Module):
         mask = mask.float().masked_fill(mask == 0, float('-inf')).masked_fill(mask == 1, float(0.0))
         return mask
 
-    def epoch(self, data_loader, device,
+    def epoch(self, data_loader,
               train=True,
               num_batches=None,
               ):
@@ -293,7 +311,7 @@ class DecoderRelative(nn.Module):
             with torch.no_grad():
                 x = tensor_dict['x']
                 # compute encoding_indices version
-                _, codes, _ = self.encoder(x, device=device)
+                _, codes, _ = self.encoder(x)
                 # Merge codes
                 _, _, num_encoders = codes.shape
                 ret = codes[:, :, 0]
@@ -306,13 +324,12 @@ class DecoderRelative(nn.Module):
             forward_pass = self.forward(
                 encoding_indices,
                 x,
-                device=device
             )
             loss = forward_pass['loss']
             if train:
                 loss.backward()
-                # torch.nn.utils.clip_grad_norm_(self.decoder.parameters(), 5)
-                # torch.nn.utils.clip_grad_norm_(self.encoder.parameters(), 5)
+                torch.nn.utils.clip_grad_norm_(self.decoder.parameters(), 5)
+                torch.nn.utils.clip_grad_norm_(self.encoder.parameters(), 5)
                 self.optimizer.step()
 
             # Monitored quantities
@@ -338,7 +355,6 @@ class DecoderRelative(nn.Module):
 
     def train_model(self,
                     batch_size,
-                    device,
                     num_batches=None,
                     num_epochs=10,
                     lr=1e-3,
@@ -360,7 +376,6 @@ class DecoderRelative(nn.Module):
 
             monitored_quantities_train = self.epoch(
                 data_loader=generator_train,
-                device=device,
                 train=True,
                 num_batches=num_batches,
             )
@@ -368,7 +383,6 @@ class DecoderRelative(nn.Module):
 
             monitored_quantities_val = self.epoch(
                 data_loader=generator_val,
-                device=device,
                 train=False,
                 num_batches=num_batches // 2 if num_batches is not None else None,
             )
@@ -438,10 +452,12 @@ class DecoderRelative(nn.Module):
                     weights_per_voice = forward_pass['weights_per_category']
                     weights = weights_per_voice[channel_index]
 
+                    # TODO REMOVE META SYMBOLS
                     # Top-p sampling
                     top_k = 0
                     top_p = 0.9
-                    # Keep only the last token predictions of the first batch item (batch size 1), apply a temperature coefficient and filter
+                    # Keep only the last token predictions of the first batch item (batch size 1), apply a
+                    # temperature coefficient and filter
                     logits = weights[:, event_index, :] / temperature
                     filtered_logits = []
                     for logit in logits:
@@ -450,20 +466,6 @@ class DecoderRelative(nn.Module):
                     filtered_logits = torch.stack(filtered_logits, dim=0)
                     # Sample from the filtered distribution
                     p = to_numpy(torch.softmax(filtered_logits, dim=-1))
-
-                    # probs = torch.softmax(
-                    #     weights[:, event_index, :],
-                    #     dim=1)
-                    # p = to_numpy(probs)
-                    # # temperature
-                    # p = np.exp(np.log(p + 1e-20) * temperature)
-                    # # TODO maybe remove this (the original x can have start symbols)
-                    # # Removing these lines make the method applicable to all datasets
-                    # # exclude non note symbols:
-                    # # for sym in exclude_symbols:
-                    # #     sym_index = self.dataset.note2index_dicts[channel_index][sym]
-                    # #     p[:, sym_index] = 0
-                    # p = p / p.sum(axis=1, keepdims=True)
 
                     # update generated sequence
                     for batch_index in range(batch_size):
@@ -496,7 +498,7 @@ class DecoderRelative(nn.Module):
 
             # Compute codes for generations
             x_re_encode = torch.cat([
-                x_original_single.long().to('cuda'),
+                cuda_variable(x_original_single.long()),
                 x
             ], dim=0)
             recoding = self.encoders_stack(x_re_encode).detach().cpu().numpy()
@@ -558,7 +560,6 @@ class DecoderRelative(nn.Module):
             shuffle_val=True,
             shuffle_train=False
         )
-        # todo use generator train!
         best_x = None
         best_size = 0
         for tensor_dict in tqdm(generator_train):
@@ -577,7 +578,6 @@ class DecoderRelative(nn.Module):
 
         return best_x
 
-
     def plot_attention(self,
                        attentions_list,
                        timestamp,
@@ -589,8 +589,6 @@ class DecoderRelative(nn.Module):
 
         :return:
         """
-        import matplotlib.pyplot as plt
-        import seaborn as sns
         # to (batch_size, num_heads, num_tokens_decoder, num_tokens_encoder)
         attentions_batch = torch.cat(
             [t.unsqueeze(2)
@@ -695,7 +693,7 @@ class DecoderRelative(nn.Module):
         chorale = chorale[:, num_events_before_start:num_events_before_end]
         tensor_score = self.data_processor.postprocess(original=None,
                                                        reconstruction=chorale)
-        # ToDo define path
+        #  ToDo define path
         scores = self.dataloader_generator.write(tensor_score, path)
         return scores
 

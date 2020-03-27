@@ -1,5 +1,6 @@
 from pathlib import Path
 
+
 config = {
     'config_encoder':              'models/encoder_sameSeq_config_2020-03-26_15-20-28/config.py',
     'training_method':             'decoder',
@@ -17,8 +18,9 @@ config = {
     ),  # Can be different from the encoder's data processor
 
     # --- Decoder ---
-    # 'transformer' or 'transformer_custom' or 'weak_transformer' or 'transformer_relative'
     'decoder_type':                'transformer_relative',
+    # 'transformer', 'transformer_relative' or 'transformer_relative_diagonal'
+    # transformer_relative_diagonal = cross-attention mask is the identity
     'decoder_kwargs':              dict(
         d_model=512,
         n_head=4,
@@ -30,9 +32,9 @@ config = {
     ),
     # ======== Training ========
     'lr':                          1e-4,
-    'batch_size':                  64,
-    'num_batches':                 None,
-    'num_epochs':                  2000,
+    'batch_size':                  2,
+    'num_batches':                 4,
+    'num_epochs':                  3,
 
     # ======== model ID ========
     'timestamp':                   None,

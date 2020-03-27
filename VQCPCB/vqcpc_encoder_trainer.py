@@ -121,7 +121,6 @@ class VQCPCEncoderTrainer(EncoderTrainer):
               train,
               num_batches,
               corrupt_labels,
-              device,
               ):
 
         means = {
@@ -149,7 +148,7 @@ class VQCPCEncoderTrainer(EncoderTrainer):
             negative_samples = negative_samples.view(batch_size * num_negative_samples * fks_dim, num_events,
                                                      num_channels)
             z_quantized_negative, encoding_indices_negative, quantization_loss_negative = self.encoder(
-                negative_samples, device=device, corrupt_labels=corrupt_labels)
+                negative_samples, corrupt_labels=corrupt_labels)
             _, num_blocks, dim_z = z_quantized_negative.shape
             z_quantized_negative = z_quantized_negative.view(batch_size, num_negative_samples, fks_dim, num_blocks,
                                                              dim_z)
@@ -159,10 +158,8 @@ class VQCPCEncoderTrainer(EncoderTrainer):
                                                                          num_blocks)
 
             z_quantized_left, encoding_indices_left, quantization_loss_left = self.encoder(tensor_dict['x_left'],
-                                                                                           device=device,
                                                                                            corrupt_labels=False)
             z_quantized_right, encoding_indices_right, quantization_loss_right = self.encoder(tensor_dict['x_right'],
-                                                                                              device=device,
                                                                                               corrupt_labels=False)
             # -- compute c
             c = self.c_module(z_quantized_left, h=None)

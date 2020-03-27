@@ -73,20 +73,19 @@ class Encoder(nn.Module):
         if self.upscaler:
             self.upscaler.load_state_dict(torch.load(f'{model_dir}/upscaler'))
 
-    def forward(self, x, device, corrupt_labels=False):
+    def forward(self, x, corrupt_labels=False):
         """
 
         :param x: x comes from the dataloader
         :param corrupt_labels: if true, assign with probability 5% a different label than the computed centroid
         :return: z_quantized, encoding_indices, quantization_loss
         """
-        z = self.data_processor.preprocess(x, device)
-        z = self.data_processor.embed(z)
-        z = flatten(z)
-        z = self.downscaler.forward(z)
+        x_proc = self.data_processor.preprocess(x)
+        x_embed = self.data_processor.embed(x_proc)
+        x_flat = flatten(x_embed)
+        z = self.downscaler.forward(x_flat)
         z_quantized, encoding_indices, quantization_loss = self.quantizer.forward(
             z,
-            device=device,
             corrupt_labels=corrupt_labels
         )
 
@@ -95,7 +94,7 @@ class Encoder(nn.Module):
 
         return z_quantized, encoding_indices, quantization_loss
 
-    def plot_clusters(self, dataloader_generator, device, split_name, batch_size=32, num_batches=64):
+    def plot_clusters(self, dataloader_generator, split_name, batch_size=32, num_batches=64):
         """
         Visualize elements belonging to the same cluster
         Elements belong to the training set
@@ -125,7 +124,7 @@ class Encoder(nn.Module):
         for k, tensor_dict in enumerate(generator):
             with torch.no_grad():
                 original_x = tensor_dict['x']
-                z_quantized, encoding_indices, quantization_loss = self.forward(original_x, device=device)
+                z_quantized, encoding_indices, quantization_loss = self.forward(original_x)
 
                 num_events_for_one_index = int(np.product(self.downscaler.downscale_factors) // \
                                                len(self.data_processor.num_tokens_per_channel)
@@ -234,7 +233,6 @@ class EncoderTrainer(nn.Module):
 
     def train_model(self,
                     batch_size,
-                    device,
                     num_batches=None,
                     num_epochs=10,
                     lr=1e-3,
@@ -261,7 +259,6 @@ class EncoderTrainer(nn.Module):
                 train=True,
                 num_batches=num_batches,
                 corrupt_labels=corrupt_labels,
-                device=device
             )
 
             del generator_train
@@ -270,10 +267,8 @@ class EncoderTrainer(nn.Module):
                 train=False,
                 num_batches=num_batches // 2 if num_batches is not None else None,
                 corrupt_labels=corrupt_labels,
-                device=device
             )
             del generator_val
-            # self.scheduler.step(monitored_quantities_val["loss"])
 
             print(f'======= Epoch {epoch_id} =======')
             print(f'---Train---')
@@ -285,7 +280,7 @@ class EncoderTrainer(nn.Module):
 
             # What criterion for early stopping ?? loss_contrastive ? loss_monitor ?
             self.save(early_stopped=False)
-            valid_loss = monitored_quantities_val['loss_contrastive']
+            valid_loss = monitored_quantities_val['loss_monitor']
             if valid_loss < best_val:
                 self.save(early_stopped=True)
                 best_val = valid_loss

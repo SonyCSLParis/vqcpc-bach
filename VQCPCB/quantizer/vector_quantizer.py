@@ -1,6 +1,8 @@
 import torch
 from torch import nn
 
+from VQCPCB.utils import cuda_variable
+
 
 class VectorQuantizer(nn.Module):
     def __init__(self, **kwargs):
@@ -11,8 +13,8 @@ class VectorQuantizer(nn.Module):
 
 
 class NoQuantization(VectorQuantizer):
-    def forward(self, inputs, device, **kwargs):
-        loss = torch.zeros_like(inputs).to(device).sum(dim=-1)
+    def forward(self, inputs, **kwargs):
+        loss = cuda_variable(torch.zeros_like(inputs)).sum(dim=-1)
         quantized_sg = inputs
         encoding_indices = None
         return quantized_sg, encoding_indices, loss
@@ -51,6 +53,9 @@ class ProductVectorQuantizer(VectorQuantizer):
     def _initialize(self, flat_input):
         # Flatten input
         assert flat_input.size()[-1] == self.codebook_dim
+        assert flat_input.size()[0] >= self.codebook_size, 'not enough elements in a batch to initialise the clusters.' \
+                                                          'You need to increase the batch dimension.' \
+                                                          'Just a few, 1 or 2 should be okay.'
 
         for k, embedding in enumerate(self.embeddings):
             flat_input_rand = flat_input[torch.randperm(flat_input.size(0))]
@@ -73,7 +78,7 @@ class ProductVectorQuantizer(VectorQuantizer):
         loss = q_latent_loss + self._commitment_cost * e_latent_loss
         return loss
 
-    def forward(self, inputs, device, corrupt_labels=False, **kwargs):
+    def forward(self, inputs, corrupt_labels=False, **kwargs):
 
         input_shape = inputs.size()
 
@@ -120,12 +125,9 @@ class ProductVectorQuantizer(VectorQuantizer):
                     random_indices_list,
                     mask_list)
                                      ]
-        # FIX the code is not non-cuda compatible
-        # encodings = [torch.zeros(encoding_indices.shape[0], self.codebook_size)
-        encodings = [torch.zeros(encoding_indices.shape[0], self.codebook_size).to(
-            device=device,
-            non_blocking=True)
-            for encoding_indices in encoding_indices_list]
+
+        encodings = [cuda_variable(torch.zeros(encoding_indices.shape[0], self.codebook_size))
+                     for encoding_indices in encoding_indices_list]
         for encoding, encoding_indices in zip(encodings, encoding_indices_list):
             encoding.scatter_(1, encoding_indices, 1)
 

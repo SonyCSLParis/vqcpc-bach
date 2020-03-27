@@ -312,6 +312,7 @@ def get_decoder(model_dir,
                              (np.prod(encoder.downscaler.downscale_factors) *
                               num_channels_encoder)
                              )
+
     if decoder_type == 'transformer':
         decoder = Decoder(
             model_dir=model_dir,
@@ -332,6 +333,26 @@ def get_decoder(model_dir,
             dataloader_generator=dataloader_generator,
             data_processor=data_processor,
             encoder=encoder,
+            diagonal_cross_attention=False,
+            d_model=decoder_kwargs['d_model'],
+            num_encoder_layers=decoder_kwargs['num_encoder_layers'],
+            num_decoder_layers=decoder_kwargs['num_decoder_layers'],
+            n_head=decoder_kwargs['n_head'],
+            dim_feedforward=decoder_kwargs['dim_feedforward'],
+            dropout=decoder_kwargs['dropout'],
+            positional_embedding_size=decoder_kwargs['positional_embedding_size'],
+            num_channels_encoder=num_channels_encoder,
+            num_events_encoder=num_events_encoder,
+            num_channels_decoder=num_channels_decoder,
+            num_events_decoder=num_events_decoder,
+        )
+    elif decoder_type == 'transformer_relative_diagonal':
+        decoder = DecoderRelative(
+            model_dir=model_dir,
+            dataloader_generator=dataloader_generator,
+            data_processor=data_processor,
+            encoder=encoder,
+            diagonal_cross_attention=True,
             d_model=decoder_kwargs['d_model'],
             num_encoder_layers=decoder_kwargs['num_encoder_layers'],
             num_decoder_layers=decoder_kwargs['num_decoder_layers'],
@@ -346,7 +367,6 @@ def get_decoder(model_dir,
         )
     else:
         raise NotImplementedError
-
     return decoder
 
 

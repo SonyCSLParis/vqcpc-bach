@@ -6,7 +6,7 @@ import torch
 from tqdm import tqdm
 
 from VQCPCB.encoder import EncoderTrainer
-from VQCPCB.utils import categorical_crossentropy, flatten, unflatten
+from VQCPCB.utils import categorical_crossentropy, flatten, unflatten, cuda_variable, distilled_categorical_crossentropy
 
 
 class StudentEncoderTrainer(EncoderTrainer):
@@ -48,7 +48,6 @@ class StudentEncoderTrainer(EncoderTrainer):
         self.scheduler = None
 
     def init_optimizers(self, lr=1e-3):
-        # TODO use radam
         self.optimizer_enc_dec = torch.optim.Adam(
             list(self.auxiliary_decoder.parameters()) +
             list(self.encoder.parameters()),
@@ -59,11 +58,6 @@ class StudentEncoderTrainer(EncoderTrainer):
             self.teacher.parameters(),
             lr=lr
         )
-
-        # todo add scheduler
-        # self.scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-        #     self.optimizer, factor=0.5,
-        #     patience=10, min_lr=5e-6)
 
     def to(self, device):
         self.auxiliary_decoder.to(device)
@@ -154,7 +148,7 @@ class StudentEncoderTrainer(EncoderTrainer):
         masked_event_index * self.num_channels
         :(masked_event_index + 1) * self.num_channels] = 1
 
-        mask_tokens = torch.LongTensor(self.num_tokens_per_channel).to('cuda')
+        mask_tokens = cuda_variable(torch.LongTensor(self.num_tokens_per_channel))
         mask_tokens = mask_tokens.unsqueeze(0).repeat(batch_size, num_events)
 
         notes_to_mask = torch.zeros_like(input)
@@ -193,25 +187,23 @@ class StudentEncoderTrainer(EncoderTrainer):
                                                               mask=notes_to_be_predicted)
 
         # quantization loss is (batch_size, downsampled_sequence_size)
-        # todo mean over sequence size?
+        # mean over sequence_size or sum ?
         loss = self.quantization_weighting * quantization_loss.mean() + reconstruct_loss.mean()
 
         return {'loss':                 loss,
                 'monitored_quantities': {
                     'loss_quantization':   quantization_loss.mean().item(),
                     'loss_reconstruction': reconstruct_loss.mean().item(),
-                    'loss_encdec':         loss.item()
+                    'loss_encdec':         loss.item(),
+                    'loss_monitor':        reconstruct_loss.mean().item(),
                 }
                 }
 
     def epoch(self, data_loader,
               train=True,
               num_batches=None,
-              corrupt_labels=False
+              corrupt_labels=False,
               ):
-        # FIXME
-        # if num_batches is None or num_batches > len(data_loader):
-        #     num_batches = len(data_loader)
 
         means = None
 
@@ -238,8 +230,7 @@ class StudentEncoderTrainer(EncoderTrainer):
 
             if train:
                 loss_teacher.backward()
-                # torch.nn.utils.clip_grad_norm_(self.decoder.parameters(), 5)
-                # torch.nn.utils.clip_grad_norm_(self.encoder.parameters(), 5)
+                torch.nn.utils.clip_grad_norm_(self.teacher.parameters(), 5)
                 self.optimizer_teacher.step()
 
             # ========Train encoder-decoder =============
@@ -253,8 +244,8 @@ class StudentEncoderTrainer(EncoderTrainer):
             loss_encdec = forward_pass_encdec['loss']
             if train:
                 loss_encdec.backward()
-                # torch.nn.utils.clip_grad_norm_(self.decoder.parameters(), 5)
-                # torch.nn.utils.clip_grad_norm_(self.encoder.parameters(), 5)
+                torch.nn.utils.clip_grad_norm_(self.auxiliary_decoder.parameters(), 5)
+                torch.nn.utils.clip_grad_norm_(self.encoder.parameters(), 5)
                 self.optimizer_enc_dec.step()
 
             # Monitored quantities

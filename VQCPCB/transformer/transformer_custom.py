@@ -383,6 +383,111 @@ class TransformerDecoderLayerCustom(Module):
         return tgt, attentions
 
 
+class TransformerAlignedDecoderLayerCustom(Module):
+    r"""TransformerDecoderLayer is made up of self-attn, multi-head-attn and feedforward network.
+    This standard decoder layer is based on the paper "Attention Is All You Need".
+    Ashish Vaswani, Noam Shazeer, Niki Parmar, Jakob Uszkoreit, Llion Jones, Aidan N Gomez,
+    Lukasz Kaiser, and Illia Polosukhin. 2017. Attention is all you need. In Advances in
+    Neural Information Processing Systems, pages 6000-6010. Users may modify or implement
+    in a different way during application.
+    Args:
+        d_model: the number of expected features in the input (required).
+        nhead: the number of heads in the multiheadattention models (required).
+        dim_feedforward: the dimension of the feedforward network model (default=2048).
+        dropout: the dropout value (default=0.1).
+        activation: the activation function of intermediate layer, relu or gelu (default=relu).
+    Examples::
+        >>> decoder_layer = nn.TransformerDecoderLayer(d_model=512, nhead=8)
+        >>> memory = torch.rand(10, 32, 512)
+        >>> tgt = torch.rand(20, 32, 512)
+        >>> out = decoder_layer(tgt, memory)
+    """
+
+    def __init__(self, d_model, nhead, attention_bias_type_self, attention_bias_type_cross,
+                 num_channels_encoder, num_events_encoder, num_channels_decoder, num_events_decoder,
+                 dim_feedforward=2048, dropout=0.1, activation="relu"):
+        super(TransformerAlignedDecoderLayerCustom, self).__init__()
+
+        self.self_attn = MultiheadAttentionCustom(
+            embed_dim=d_model,
+            num_heads=nhead,
+            attention_bias_type=attention_bias_type_self,
+            num_channels_k=num_channels_decoder,
+            num_events_k=num_events_decoder,
+            num_channels_q=num_channels_decoder,
+            num_events_q=num_events_decoder,
+            dropout=dropout)
+
+        # self.cross_attn = nn.Linear(num_channels_encoder * d_model,
+        #                             d_model * num_channels_decoder)
+        self.cross_attn = nn.Sequential(
+            nn.Linear(num_channels_encoder * d_model, d_model * 2),
+            nn.ELU(),
+            nn.Linear(d_model * 2, d_model * num_channels_decoder)
+        )
+        self.num_channels_encoder = num_channels_encoder
+        self.num_channels_decoder = num_channels_decoder
+        # Implementation of Feedforward model
+        self.linear1 = nn.Linear(d_model, dim_feedforward)
+        self.dropout = nn.Dropout(dropout)
+        self.linear2 = nn.Linear(dim_feedforward, d_model)
+
+        self.norm1 = nn.LayerNorm(d_model)
+        self.norm2 = nn.LayerNorm(d_model)
+        self.norm3 = nn.LayerNorm(d_model)
+        self.dropout1 = nn.Dropout(dropout)
+        self.dropout2 = nn.Dropout(dropout)
+        self.dropout3 = nn.Dropout(dropout)
+
+        self.activation = _get_activation_fn(activation)
+
+    def forward(self, tgt, memory, tgt_mask=None, memory_mask=None,
+                tgt_key_padding_mask=None, memory_key_padding_mask=None):
+        r"""Pass the inputs (and mask) through the decoder layer.
+        Args:
+            tgt: the sequence to the decoder layer (required).
+            memory: the sequnce from the last layer of the encoder (required).
+            tgt_mask: the mask for the tgt sequence (optional).
+            memory_mask: the mask for the memory sequence (optional).
+            tgt_key_padding_mask: the mask for the tgt keys per batch (optional).
+            memory_key_padding_mask: the mask for the memory keys per batch (optional).
+        Shape:
+            see the docs in Transformer class.
+        """
+        tgt2, a_self = self.self_attn(tgt, tgt, tgt, attn_mask=tgt_mask,
+                                      key_padding_mask=tgt_key_padding_mask)
+        tgt = tgt + self.dropout1(tgt2)
+        tgt = self.norm1(tgt)
+
+        # memory is (len = num_channels * num_events, batch, d_model)
+        num_tokens_memory, batch_size, d_model = memory.size()
+        num_events_memory = num_tokens_memory // self.num_channels_encoder
+        memory = memory.view(num_events_memory,
+                             self.num_channels_encoder,
+                             batch_size,
+                             d_model)
+        memory = memory.permute(0, 2, 1, 3).reshape(num_events_memory,
+                                                    batch_size,
+                                                    self.num_channels_encoder * d_model)
+        tgt2, a_cross = self.cross_attn(memory), None
+        tgt2 = tgt2.reshape(num_events_memory, batch_size, d_model, self.num_channels_decoder)
+        tgt2 = tgt2.permute(0, 3, 1, 2)
+        tgt2 = tgt2.repeat_interleave(repeats=(tgt.size(0) // self.num_channels_decoder) //
+                                              tgt2.size(0),
+                                     dim=0).reshape(tgt.size(0),
+                                                batch_size, d_model)
+        tgt = tgt + self.dropout2(tgt2)
+        tgt = self.norm2(tgt)
+        if hasattr(self, "activation"):
+            tgt2 = self.linear2(self.dropout(self.activation(self.linear1(tgt))))
+        else:  # for backward compatibility
+            tgt2 = self.linear2(self.dropout(F.relu(self.linear1(tgt))))
+        tgt = tgt + self.dropout3(tgt2)
+        tgt = self.norm3(tgt)
+        attentions = dict(a_self_decoder=a_self,
+                          a_cross=a_cross)
+        return tgt, attentions
+
 def _get_activation_fn(activation):
     if activation == "relu":
         return F.relu

@@ -48,6 +48,7 @@ def categorical_crossentropy(value, target, mask=None):
         sum = sum + ce
     return sum
 
+
 def flatten(x):
     """
 
@@ -125,3 +126,34 @@ def top_k_top_p_filtering(logits, top_k=0, top_p=0.0, filter_value=-float('Inf')
         indices_to_remove = sorted_indices[sorted_indices_to_remove]
         logits[indices_to_remove] = filter_value
     return logits
+
+
+def distilled_categorical_crossentropy(value, target, mask=None):
+    """
+    :param value: list of (batch_size, num_events, num_notes)
+    :param target: list of (batch_size, num_events, num_notes)
+    :return:
+    """
+    def cross_entropy_from_logits(p, q):
+        """
+        sum softmax(p) log softmax(q)
+        :param p:
+        :param q:
+        :return:
+        """
+        p = torch.softmax(p, dim=1)
+        log_term = q - torch.logsumexp(q, dim=1, keepdim=True)
+        return -torch.sum(p * log_term, dim=1)
+
+    sum = 0
+    for channel, channel_target, channel_mask in zip(value, target, mask.split(1, dim=2)):
+        # channel is (batch_size, num_events, num_tokens_of_corresponding_channel)
+        # channel_target is (batch_size, num_events)
+        for probs, label, m in zip(channel.split(1, dim=1),
+                                   channel_target.split(1, dim=1),
+                                   channel_mask.split(1, dim=1)):
+            if m.squeeze(2).squeeze(1).float().mean().item() > 0.5:
+                ce = cross_entropy_from_logits(label.squeeze(1),
+                                               probs.squeeze(1))
+                sum = sum + ce
+    return sum

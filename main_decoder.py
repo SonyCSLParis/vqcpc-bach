@@ -105,7 +105,6 @@ def main(train,
         decoder.to(device)
         decoder.train_model(
             batch_size=config['batch_size'],
-            device=device,
             num_batches=config['num_batches'],
             num_epochs=config['num_epochs'],
             lr=config['lr'],

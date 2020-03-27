@@ -189,10 +189,6 @@ class PriorRelative(nn.Module):
               train=True,
               num_batches=None,
               ):
-        # FIXME
-        # if num_batches is None or num_batches > len(data_loader):
-        #     num_batches = len(data_loader)
-
         means = None
 
         if train:
@@ -219,8 +215,8 @@ class PriorRelative(nn.Module):
             loss = forward_pass['loss']
             if train:
                 loss.backward()
-                # torch.nn.utils.clip_grad_norm_(self.decoder.parameters(), 5)
-                # torch.nn.utils.clip_grad_norm_(self.encoder.parameters(), 5)
+                torch.nn.utils.clip_grad_norm_(self.decoder.parameters(), 5)
+                torch.nn.utils.clip_grad_norm_(self.encoder.parameters(), 5)
                 self.optimizer.step()
 
             # Monitored quantities

@@ -4,6 +4,7 @@ from torch import nn
 import numpy as np
 
 from VQCPCB.transformer.transformer_custom import TransformerEncoderLayerCustom, TransformerEncoderCustom
+from VQCPCB.utils import cuda_variable
 
 
 class RelativeTransformerDownscaler(nn.Module):
@@ -162,4 +163,4 @@ class RelativeTransformerDownscaler(nn.Module):
         mask = torch.eye(sequence_size // block_size) \
             .repeat_interleave(block_size, dim=0). \
             repeat_interleave(block_size, dim=1)
-        return mask.to('cuda')
+        return cuda_variable(mask)
