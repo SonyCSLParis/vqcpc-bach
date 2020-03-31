@@ -24,22 +24,6 @@ from VQCPCB.upscalers.mlp_upscaler import MlpUpscaler
 from VQCPCB.quantizer.vector_quantizer import ProductVectorQuantizer, NoQuantization
 
 
-def get_vector_quantizer(vector_quantizer_type,
-                         vector_quantizer_kwargs,
-                         output_dim,
-                         initialize):
-    if vector_quantizer_type == 'product':
-        return ProductVectorQuantizer(
-            codebook_dim=output_dim,
-            initialize=initialize,
-            **vector_quantizer_kwargs
-        )
-    elif vector_quantizer_type == 'none':
-        return NoQuantization()
-    else:
-        raise NotImplementedError
-
-
 def get_dataloader_generator(
         dataset,
         training_method,
@@ -167,15 +151,18 @@ def get_encoder(model_dir,
             downscaler_kwargs=downscaler_kwargs
         )
 
-        quantizer = ProductVectorQuantizer(
-            codebook_size=quantizer_kwargs['codebook_size'],
-            num_codebooks=quantizer_kwargs['num_codebooks'],
-            codebook_dim=quantizer_kwargs['codebook_dim'],
-            initialize=quantizer_kwargs['initialize'],
-            squared_l2_norm=quantizer_kwargs['squared_l2_norm'],
-            use_batch_norm=quantizer_kwargs['use_batch_norm'],
-            commitment_cost=quantizer_kwargs['commitment_cost']
-        )
+        if config['quantizer_type'] == 'commitment':
+            quantizer = ProductVectorQuantizer(
+                codebook_size=quantizer_kwargs['codebook_size'],
+                num_codebooks=quantizer_kwargs['num_codebooks'],
+                codebook_dim=quantizer_kwargs['codebook_dim'],
+                initialize=quantizer_kwargs['initialize'],
+                squared_l2_norm=quantizer_kwargs['squared_l2_norm'],
+                use_batch_norm=quantizer_kwargs['use_batch_norm'],
+                commitment_cost=quantizer_kwargs['commitment_cost']
+            )
+        elif config['quantizer_type'] is None:
+            quantizer = NoQuantization()
 
         if config['upscaler_type'] is not None:
             upscaler_kwargs['input_dim'] = quantizer_kwargs['codebook_dim']

@@ -36,6 +36,7 @@ config = {
         dropout=0.1
     ),
     # --- Quantizer ---
+    'quantizer_type': 'commitment',
     'quantizer_kwargs': dict(
         num_codebooks=1,
         codebook_size=32,
