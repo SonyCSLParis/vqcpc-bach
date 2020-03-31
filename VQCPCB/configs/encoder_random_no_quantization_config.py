@@ -41,15 +41,7 @@ config = {
     ),
     # --- Quantizer ---
     'quantizer_type': None,
-    'quantizer_kwargs': dict(
-        num_codebooks=1,
-        codebook_size=32,
-        codebook_dim=3,
-        commitment_cost=0.25,
-        use_batch_norm=False,
-        squared_l2_norm=True
-        # add corrupt indices
-    ),
+    'quantizer_kwargs': dict(),
     # --- Upscaler ---
     'upscaler_type': 'mlp_upscaler',  # mlp_upscaler
     # 'upscaler_type': None,  # mlp_upscaler
