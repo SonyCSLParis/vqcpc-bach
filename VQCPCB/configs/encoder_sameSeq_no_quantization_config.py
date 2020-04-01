@@ -16,7 +16,7 @@ config = {
     'dataloader_generator_kwargs': dict(num_tokens_per_block=num_tokens_per_block,
                                         num_blocks_left=num_block_left,
                                         num_blocks_right=num_block_right,
-                                        negative_sampling_method='random',  # random or same_sequence
+                                        negative_sampling_method='same_sequence',  # random or same_sequence
                                         num_negative_samples=15,            # useless in the same_sequence case
                                         sequences_size=sequences_size,      # used only for visualising clusters
                                         ),
