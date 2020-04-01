@@ -257,7 +257,6 @@ class DecoderRelative(nn.Module):
                                                                           src_mask=source_mask
                                                                           )
 
-        import pdb; pdb.set_trace()
         output = output.transpose(0, 1).contiguous()
 
         output = output.view(batch_size,

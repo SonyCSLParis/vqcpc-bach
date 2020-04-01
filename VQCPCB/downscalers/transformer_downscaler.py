@@ -22,7 +22,6 @@ class TransformerDownscaler(Downscaler):
                  n_head,
                  list_of_num_layers,
                  dim_feedforward,
-                 attention_masking_type,
                  dropout
                  ):
         super(TransformerDownscaler, self).__init__(downscale_factors)
@@ -47,8 +46,6 @@ class TransformerDownscaler(Downscaler):
             d_model,
             self.output_dim)
 
-        # TODO same TransformerEncoderLayer?
-        # TODO relative attention
         encoder_layer = TransformerEncoderLayer(
             d_model=d_model,
             nhead=n_head,
@@ -62,8 +59,6 @@ class TransformerDownscaler(Downscaler):
             )
             for num_layers in list_of_num_layers]
         )
-
-        self.attention_masking_type = attention_masking_type
 
     def forward(self, embedded_seq):
         """

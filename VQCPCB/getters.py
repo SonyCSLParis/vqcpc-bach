@@ -60,7 +60,6 @@ def get_downscaler(downscaler_type,
             n_head=downscaler_kwargs['n_head'],
             list_of_num_layers=downscaler_kwargs['list_of_num_layers'],
             dim_feedforward=downscaler_kwargs['dim_feedforward'],
-            attention_masking_type=downscaler_kwargs['attention_masking_type'],
             dropout=downscaler_kwargs['dropout']
         )
     elif downscaler_type == 'relative_transformer_downscaler':
