@@ -2,7 +2,6 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from VQCPCB.transformer.relative_attention import RelativeAttention
 from VQCPCB.transformer.subsampled_relative_attention import SubsampledRelativeAttention
 
 
