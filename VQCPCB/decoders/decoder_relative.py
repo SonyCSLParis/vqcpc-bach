@@ -126,7 +126,7 @@ class DecoderRelative(nn.Module):
                 d_model=d_model,
                 nhead=n_head,
                 attention_bias_type_self='relative_attention',
-                attention_bias_type_cross='relative_attention',
+                attention_bias_type_cross='relative_attention_target_source',
                 num_channels_encoder=num_channels_encoder,
                 num_events_encoder=num_events_encoder,
                 num_channels_decoder=num_channels_decoder,
@@ -257,6 +257,7 @@ class DecoderRelative(nn.Module):
                                                                           src_mask=source_mask
                                                                           )
 
+        import pdb; pdb.set_trace()
         output = output.transpose(0, 1).contiguous()
 
         output = output.view(batch_size,
@@ -328,8 +329,7 @@ class DecoderRelative(nn.Module):
             loss = forward_pass['loss']
             if train:
                 loss.backward()
-                torch.nn.utils.clip_grad_norm_(self.decoder.parameters(), 5)
-                torch.nn.utils.clip_grad_norm_(self.encoder.parameters(), 5)
+                torch.nn.utils.clip_grad_norm_(self.parameters(), 5)
                 self.optimizer.step()
 
             # Monitored quantities

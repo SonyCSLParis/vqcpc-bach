@@ -104,12 +104,14 @@ class SubsampledRelativeAttention(nn.Module):
         masks_down = torch.triu(torch.ones(self.seq_len_src, self.seq_len_src).byte(),
                                 diagonal=0).unsqueeze(0).repeat(sz_b_times_n_head, 1, 1).flip(
             1).flip(2).type(torch.bool)
-        masks_down = cuda_variable(torch.repeat_interleave(masks_down, self.subsampling_ratio, dim=1))
+        if self.subsampling_ratio != 1:
+            masks_down = cuda_variable(torch.repeat_interleave(masks_down, self.subsampling_ratio, dim=1))
 
         masks_up = torch.triu(torch.ones(self.seq_len_src, self.seq_len_src).byte(),
                               diagonal=1).unsqueeze(0).repeat(sz_b_times_n_head, 1, 1).type(
             torch.bool)
-        masks_up = cuda_variable(torch.repeat_interleave(masks_up, self.subsampling_ratio, dim=1))
+        if self.subsampling_ratio != 1:
+            masks_up = cuda_variable(torch.repeat_interleave(masks_up, self.subsampling_ratio, dim=1))
 
         rel_attn_1 = rel_attn_1.masked_fill(masks_up, 0)
         rel_attn_2 = rel_attn_2.masked_fill(masks_down, 0)

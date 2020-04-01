@@ -2,6 +2,8 @@
 Overwrite pytorch transformer layers
 Only TransformerEncoder and TransformerDecoder need to be overwritten
 """
+import time
+
 import torch
 from torch import nn
 from torch.nn import functional as F
@@ -274,8 +276,12 @@ class TransformerEncoderLayerCustom(Module):
         Shape:
             see the docs in Transformer class.
         """
+        aaa = time.time()
         src2, a_self = self.self_attn(src, src, src, attn_mask=src_mask,
                                       key_padding_mask=src_key_padding_mask)
+        aaa = time.time() - aaa
+        print(f'Time self-attention encoder: {aaa}')
+
         src = src + self.dropout1(src2)
         src = self.norm1(src)
         if hasattr(self, "activation"):
@@ -364,12 +370,18 @@ class TransformerDecoderLayerCustom(Module):
         Shape:
             see the docs in Transformer class.
         """
+        aaa = time.time()
         tgt2, a_self = self.self_attn(tgt, tgt, tgt, attn_mask=tgt_mask,
                                       key_padding_mask=tgt_key_padding_mask)
+        aaa = time.time() - aaa
+        print(f'Time self-attention decoder: {aaa}')
         tgt = tgt + self.dropout1(tgt2)
         tgt = self.norm1(tgt)
+        aaa = time.time()
         tgt2, a_cross = self.multihead_attn(tgt, memory, memory, attn_mask=memory_mask,
                                             key_padding_mask=memory_key_padding_mask)
+        aaa = time.time() - aaa
+        print(f'Time cross-attention decoder: {aaa}')
         tgt = tgt + self.dropout2(tgt2)
         tgt = self.norm2(tgt)
         if hasattr(self, "activation"):
