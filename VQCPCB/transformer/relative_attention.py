@@ -54,7 +54,7 @@ class RelativeAttention(nn.Module):
         # pad
         rel_attn_1 = torch.cat(
             [rel_attn_1,
-             cuda_variable(torch.ones(1, 1, 1, ) * - 100).repeat(batch_size, l, 1),
+             cuda_variable(torch.ones(batch_size, l, 1) * - 100),
              ], dim=2
         )
         rel_attn_1 = rel_attn_1.view(batch_size, l + 1, l)
@@ -64,9 +64,8 @@ class RelativeAttention(nn.Module):
         # ----Up
 
         # pad
-        # extension = cuda_variable(torch.ones(batch_size, l, 1, ) * - 100)
         rel_attn_2 = torch.cat(
-            [cuda_variable(torch.ones(1, 1, 1, ) * - 100).repeat(batch_size, l, 1),
+            [cuda_variable(torch.ones(batch_size, l, 1) * - 100),
              rel_attn_2
              ], dim=2
         )
