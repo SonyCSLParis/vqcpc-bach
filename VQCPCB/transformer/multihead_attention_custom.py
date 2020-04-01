@@ -73,24 +73,14 @@ class MultiheadAttentionCustom(nn.Module):
 
         if attention_bias_type == 'no_attention_bias':
             self.attn_bias = None
-        # elif attention_bias_type == 'relative_attention':
-        #     seq_len_out = num_channels_q * num_events_q
-        #
-        #     self.attn_bias = RelativeAttention(head_dim=self.head_dim,
-        #                                        num_heads=num_heads,
-        #                                        max_seq_len=seq_len_out
-        #                                        )
-        #
-        #     # seq_len_src = num_channels_k * num_events_k
-        #     # seq_len_tgt = num_channels_q * num_events_q
-        #     # assert seq_len_tgt % seq_len_tgt == 0
-        #     # self.attn_bias = SubsampledRelativeAttention(
-        #     #     head_dim=self.head_dim,
-        #     #     num_heads=num_heads,
-        #     #     seq_len_src=seq_len_src,
-        #     #     seq_len_tgt=seq_len_tgt
-        #     # )
-        elif attention_bias_type in ['relative_attention_target_source', 'relative_attention']:
+        elif attention_bias_type == 'relative_attention':
+            seq_len_out = num_channels_q * num_events_q
+
+            self.attn_bias = RelativeAttention(head_dim=self.head_dim,
+                                               num_heads=num_heads,
+                                               max_seq_len=seq_len_out
+                                               )
+        elif attention_bias_type in ['relative_attention_target_source']:
             seq_len_src = num_channels_k * num_events_k
             seq_len_tgt = num_channels_q * num_events_q
             assert seq_len_tgt % seq_len_tgt == 0
@@ -100,6 +90,16 @@ class MultiheadAttentionCustom(nn.Module):
                 seq_len_src=seq_len_src,
                 seq_len_tgt=seq_len_tgt
             )
+        # elif attention_bias_type in ['relative_attention_target_source', 'relative_attention']:
+        #     seq_len_src = num_channels_k * num_events_k
+        #     seq_len_tgt = num_channels_q * num_events_q
+        #     assert seq_len_tgt % seq_len_tgt == 0
+        #     self.attn_bias = SubsampledRelativeAttention(
+        #         head_dim=self.head_dim,
+        #         num_heads=num_heads,
+        #         seq_len_src=seq_len_src,
+        #         seq_len_tgt=seq_len_tgt
+        #     )
         else:
             raise NotImplementedError('Not a valid type of attention bias')
         self._reset_parameters()
