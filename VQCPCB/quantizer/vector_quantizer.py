@@ -13,6 +13,10 @@ class VectorQuantizer(nn.Module):
 
 
 class NoQuantization(VectorQuantizer):
+    def __init__(self, codebook_dim):
+        super(NoQuantization, self).__init__()
+        self.codebook_dim = codebook_dim
+
     def forward(self, inputs, **kwargs):
         loss = cuda_variable(torch.zeros_like(inputs)).sum(dim=-1)
         quantized_sg = inputs

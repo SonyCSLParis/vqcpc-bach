@@ -41,10 +41,12 @@ config = {
     ),
     # --- Quantizer ---
     'quantizer_type': None,
-    'quantizer_kwargs': dict(),
+    'quantizer_kwargs': dict(
+        codebook_dim=32,  # Even if there's no codebook, used to define the dimension of the latent z
+    ),
     # --- Upscaler ---
-    'upscaler_type': 'mlp_upscaler',  # mlp_upscaler
-    # 'upscaler_type': None,  # mlp_upscaler
+    # 'upscaler_type': 'mlp_upscaler',  # mlp_upscaler
+    'upscaler_type': None,  # mlp_upscaler
     'upscaler_kwargs': dict(
         # DCPC uses a Transformer
         output_dim=32,

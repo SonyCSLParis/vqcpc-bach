@@ -162,7 +162,7 @@ def get_encoder(model_dir,
                 commitment_cost=quantizer_kwargs['commitment_cost']
             )
         elif config['quantizer_type'] is None:
-            quantizer = NoQuantization()
+            quantizer = NoQuantization(codebook_dim=quantizer_kwargs['codebook_dim'])
 
         if config['upscaler_type'] is not None:
             upscaler_kwargs['input_dim'] = quantizer_kwargs['codebook_dim']

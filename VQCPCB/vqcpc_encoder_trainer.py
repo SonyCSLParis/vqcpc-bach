@@ -152,8 +152,10 @@ class VQCPCEncoderTrainer(EncoderTrainer):
             _, num_blocks, dim_z = z_quantized_negative.shape
             z_quantized_negative = z_quantized_negative.view(batch_size, num_negative_samples, fks_dim, num_blocks,
                                                              dim_z)
-            encoding_indices_negative = encoding_indices_negative.view(batch_size, num_negative_samples, fks_dim,
-                                                                       num_blocks)
+            if encoding_indices_negative is not None:
+                encoding_indices_negative = encoding_indices_negative.view(batch_size, num_negative_samples, fks_dim,
+                                                                           num_blocks)
+
             quantization_loss_negative = quantization_loss_negative.view(batch_size, num_negative_samples, fks_dim,
                                                                          num_blocks)
 
