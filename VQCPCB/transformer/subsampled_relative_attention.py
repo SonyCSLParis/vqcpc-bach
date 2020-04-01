@@ -54,12 +54,13 @@ class SubsampledRelativeAttention(nn.Module):
 
         #  fill in with lines (ensure view can be done)
         bottom_extension = self.seq_len_tgt - self.seq_len_src
-        if bottom_extension != 0:
-            rel_attn_1 = torch.cat(
-                [rel_attn_1,
-                 cuda_variable(torch.ones(1, 1, 1) * - 100).repeat(batch_size, bottom_extension, self.seq_len_tgt + 1),
-                 ], dim=1
-            )
+        # TODO
+        # if bottom_extension != 0:
+        rel_attn_1 = torch.cat(
+            [rel_attn_1,
+             cuda_variable(torch.ones(1, 1, 1) * - 100).repeat(batch_size, bottom_extension, self.seq_len_tgt + 1),
+             ], dim=1
+        )
 
         #  skewing
         rel_attn_1 = rel_attn_1.view(batch_size, -1, self.seq_len_src)
@@ -88,12 +89,13 @@ class SubsampledRelativeAttention(nn.Module):
 
         #  fill in with lines (ensure view can be done)
         bottom_extension = self.seq_len_tgt - self.seq_len_src
-        if bottom_extension != 0:
-            rel_attn_2 = torch.cat(
-                [rel_attn_2,
-                 cuda_variable(torch.ones(1, bottom_extension, self.seq_len_tgt + 1) * - 100).repeat(batch_size, 1, 1),
-                 ], dim=1
-            )
+        # TODO
+        # if bottom_extension != 0:
+        rel_attn_2 = torch.cat(
+            [rel_attn_2,
+             cuda_variable(torch.ones(1, bottom_extension, self.seq_len_tgt + 1) * - 100).repeat(batch_size, 1, 1),
+             ], dim=1
+        )
 
         #  SKEWWWIIIIING (tgt + 1) * (tgt + 1) -> x * tgt
         rel_attn_2 = rel_attn_2.view(batch_size, -1, self.seq_len_src)
@@ -104,18 +106,20 @@ class SubsampledRelativeAttention(nn.Module):
         masks_down = torch.triu(torch.ones(self.seq_len_src, self.seq_len_src).byte(),
                                 diagonal=0).unsqueeze(0).repeat(sz_b_times_n_head, 1, 1).flip(
             1).flip(2).type(torch.bool)
-        if self.subsampling_ratio != 1:
-            masks_down = cuda_variable(torch.repeat_interleave(masks_down, self.subsampling_ratio, dim=1))
-        else:
-            masks_down = cuda_variable(masks_down)
+        # TODO
+        # if self.subsampling_ratio != 1:
+        masks_down = cuda_variable(torch.repeat_interleave(masks_down, self.subsampling_ratio, dim=1))
+        # else:
+        #     masks_down = cuda_variable(masks_down)
 
         masks_up = torch.triu(torch.ones(self.seq_len_src, self.seq_len_src).byte(),
                               diagonal=1).unsqueeze(0).repeat(sz_b_times_n_head, 1, 1).type(
             torch.bool)
-        if self.subsampling_ratio != 1:
-            masks_up = cuda_variable(torch.repeat_interleave(masks_up, self.subsampling_ratio, dim=1))
-        else:
-            masks_up = cuda_variable(masks_up)
+        # TODO
+        # if self.subsampling_ratio != 1:
+        masks_up = cuda_variable(torch.repeat_interleave(masks_up, self.subsampling_ratio, dim=1))
+        # else:
+        #     masks_up = cuda_variable(masks_up)
 
         rel_attn_1 = rel_attn_1.masked_fill(masks_up, 0)
         rel_attn_2 = rel_attn_2.masked_fill(masks_down, 0)
