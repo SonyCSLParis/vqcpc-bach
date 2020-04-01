@@ -68,7 +68,7 @@ config = {
     # ======== Training ========
     'lr': 1e-4,
     'batch_size': 16,
-    'num_batches': None,
+    'num_batches': 256,
     'num_epochs': 20000,
     'quantizer_regularization': dict(
         corrupt_labels=False

@@ -54,11 +54,12 @@ class SubsampledRelativeAttention(nn.Module):
 
         #  fill in with lines (ensure view can be done)
         bottom_extension = self.seq_len_tgt - self.seq_len_src
-        rel_attn_1 = torch.cat(
-            [rel_attn_1,
-             cuda_variable(torch.ones(1, 1, 1) * - 100).repeat(batch_size, bottom_extension, self.seq_len_tgt + 1),
-             ], dim=1
-        )
+        if bottom_extension != 0:
+            rel_attn_1 = torch.cat(
+                [rel_attn_1,
+                 cuda_variable(torch.ones(1, 1, 1) * - 100).repeat(batch_size, bottom_extension, self.seq_len_tgt + 1),
+                 ], dim=1
+            )
 
         #  skewing
         rel_attn_1 = rel_attn_1.view(batch_size, -1, self.seq_len_src)
@@ -87,11 +88,12 @@ class SubsampledRelativeAttention(nn.Module):
 
         #  fill in with lines (ensure view can be done)
         bottom_extension = self.seq_len_tgt - self.seq_len_src
-        rel_attn_2 = torch.cat(
-            [rel_attn_2,
-             cuda_variable(torch.ones(1, bottom_extension, self.seq_len_tgt + 1) * - 100).repeat(batch_size, 1, 1),
-             ], dim=1
-        )
+        if bottom_extension != 0:
+            rel_attn_2 = torch.cat(
+                [rel_attn_2,
+                 cuda_variable(torch.ones(1, bottom_extension, self.seq_len_tgt + 1) * - 100).repeat(batch_size, 1, 1),
+                 ], dim=1
+            )
 
         #  SKEWWWIIIIING (tgt + 1) * (tgt + 1) -> x * tgt
         rel_attn_2 = rel_attn_2.view(batch_size, -1, self.seq_len_src)
