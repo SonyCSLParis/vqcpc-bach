@@ -49,7 +49,7 @@ class SubsampledRelativeAttention(nn.Module):
 
         #  one column padding on dim 2
         rel_attn_1 = torch.cat(
-            [cuda_variable(torch.ones(1, 1, 1) * - 100).repeat(batch_size, self.seq_len_src, 1),
+            [cuda_variable(torch.ones(batch_size, self.seq_len_src, 1) * - 100),
              rel_attn_1,
              ], dim=2
         )
@@ -59,7 +59,7 @@ class SubsampledRelativeAttention(nn.Module):
         if bottom_extension != 0:
             rel_attn_1 = torch.cat(
                 [rel_attn_1,
-                 cuda_variable(torch.ones(1, 1, 1) * - 100).repeat(batch_size, bottom_extension, self.seq_len_tgt + 1),
+                 cuda_variable(torch.ones(batch_size, bottom_extension, self.seq_len_tgt + 1) * - 100),
                  ], dim=1
             )
 
@@ -84,31 +84,16 @@ class SubsampledRelativeAttention(nn.Module):
         #  one column padding on dim 2
         rel_attn_2 = torch.cat(
             [rel_attn_2,
-             cuda_variable(torch.ones(1, 1, 1) * - 100).repeat(batch_size, self.seq_len_src, 1),
+             cuda_variable(torch.ones(batch_size, self.seq_len_src, 1) * - 100),
              ], dim=2
         )
 
         #  fill in with lines (ensure view can be done)
         bottom_extension = self.seq_len_tgt - self.seq_len_src
-        ################################################################################################
-        ################################################################################################
-        ### TODO TEST
-        aaa = time.time()
-        extension_matrix = cuda_variable(torch.ones(batch_size, bottom_extension, self.seq_len_tgt + 1) * - 100)
-        aaa = time.time() - aaa
-        print(f"Time: {aaa}")
-        ################################################################################################
-        aaa = time.time()
-        extension_matrix = cuda_variable(torch.ones(1, 1, 1) * - 100).repeat(batch_size, bottom_extension, self.seq_len_tgt + 1)
-        aaa = time.time() - aaa
-        print(f"Time: {aaa}")
-        ################################################################################################
-        ################################################################################################
-        import pdb; pdb.set_trace()
         if bottom_extension != 0:
             rel_attn_2 = torch.cat(
                 [rel_attn_2,
-                 extension_matrix,
+                 cuda_variable(torch.ones(batch_size, bottom_extension, self.seq_len_tgt + 1) * - 100),
                  ], dim=1
             )
 
