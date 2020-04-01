@@ -142,8 +142,6 @@ class VQCPCEncoderTrainer(EncoderTrainer):
         for sample_id, tensor_dict in tqdm(enumerate(islice(data_loader,
                                                             num_batches))):
 
-            continue
-
             # downscale and quantize (preprocessing and embedding are included in these steps)
             negative_samples = tensor_dict['negative_samples']
             batch_size, num_negative_samples, fks_dim, num_events, num_channels = negative_samples.shape
