@@ -94,7 +94,7 @@ class SubsampledRelativeAttention(nn.Module):
         ################################################################################################
         ### TODO TEST
         aaa = time.time()
-        extension_matrix = cuda_variable(torch.ones(1, bottom_extension, self.seq_len_tgt + 1) * - 100).repeat(batch_size, 1, 1)
+        extension_matrix = cuda_variable(torch.ones(batch_size, bottom_extension, self.seq_len_tgt + 1) * - 100)
         aaa = time.time() - aaa
         print(f"Time: {aaa}")
         ################################################################################################
