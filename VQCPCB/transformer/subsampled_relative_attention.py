@@ -1,3 +1,5 @@
+import time
+
 import torch
 import torch.nn as nn
 from VQCPCB.utils import cuda_variable
@@ -88,10 +90,25 @@ class SubsampledRelativeAttention(nn.Module):
 
         #  fill in with lines (ensure view can be done)
         bottom_extension = self.seq_len_tgt - self.seq_len_src
+        ################################################################################################
+        ################################################################################################
+        ### TODO TEST
+        aaa = time.time()
+        extension_matrix = (torch.ones(1, bottom_extension, self.seq_len_tgt + 1) * - 100).repeat(batch_size, 1, 1)
+        aaa = time.time() - aaa
+        print(f"Time: {aaa}")
+        ################################################################################################
+        aaa = time.time()
+        extension_matrix = (torch.ones(1, 1, 1) * - 100).repeat(batch_size, bottom_extension, self.seq_len_tgt + 1)
+        aaa = time.time() - aaa
+        print(f"Time: {aaa}")
+        ################################################################################################
+        ################################################################################################
+        import pdb; pdb.set_trace()
         if bottom_extension != 0:
             rel_attn_2 = torch.cat(
                 [rel_attn_2,
-                 cuda_variable(torch.ones(1, bottom_extension, self.seq_len_tgt + 1) * - 100).repeat(batch_size, 1, 1),
+                 extension_matrix,
                  ], dim=1
             )
 

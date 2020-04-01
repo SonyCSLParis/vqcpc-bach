@@ -365,13 +365,11 @@ if __name__ == '__main__':
     embed_dim = 64
     num_heads = 4
     attention_bias_type = 'block_attention'
-    attention_mask_shape = 'full'
 
     multi_head_attention = MultiheadAttentionCustom(
         embed_dim=embed_dim,
         num_heads=num_heads,
         attention_bias_type=attention_bias_type,
-        attention_mask_shape=attention_mask_shape,
         num_channels_k=num_channels,
         num_events_k=num_events,
         num_channels_q=num_channels,
