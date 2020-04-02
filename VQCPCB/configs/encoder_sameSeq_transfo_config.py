@@ -32,7 +32,8 @@ config = {
     'downscaler_type': 'transformer_downscaler',
     'downscaler_kwargs':           dict(
         # DCPC uses a Transformer
-        downscale_factors=[16],
+        downscale_factors=[4, 4],
+        num_channels=num_voices,
         d_model=512,
         n_head=8,
         list_of_num_layers=[2, 2],

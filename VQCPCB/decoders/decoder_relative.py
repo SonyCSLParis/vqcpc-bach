@@ -66,10 +66,10 @@ class DecoderRelative(nn.Module):
         self.dataloader_generator = dataloader_generator
         self.data_processor = data_processor
 
+        # Compute num_tokens for source and target
         self.num_tokens_per_channel = self.data_processor.num_tokens_per_channel
         self.num_channels = len(self.num_tokens_per_channel)
         self.d_model = d_model
-        # Compute num_tokens for source and target
         self.num_tokens_target = self.data_processor.num_tokens
         assert self.num_tokens_target == num_channels_decoder * num_events_decoder
 
@@ -246,7 +246,7 @@ class DecoderRelative(nn.Module):
             ],
             dim=0)
 
-        #
+        # masks: anti-causal for encoder, causal for decoder
         source_mask = cuda_variable(self._generate_square_subsequent_mask(source_seq.size(0))).t()
         target_mask = cuda_variable(self._generate_square_subsequent_mask(target_seq.size(0)))
 

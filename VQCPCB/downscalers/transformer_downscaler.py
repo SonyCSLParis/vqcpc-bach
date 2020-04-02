@@ -1,9 +1,10 @@
+import numpy as np
 import torch
 from torch import nn
-from torch.nn.modules import TransformerEncoderLayer
 
 from VQCPCB.downscalers.downscaler import Downscaler
-from VQCPCB.utils import flatten, cuda_variable
+from VQCPCB.transformer.transformer_custom import TransformerEncoderLayerCustom, TransformerEncoderCustom
+from VQCPCB.utils import cuda_variable
 
 
 class TransformerDownscaler(Downscaler):
@@ -16,8 +17,8 @@ class TransformerDownscaler(Downscaler):
     def __init__(self,
                  input_dim,
                  output_dim,
+                 num_channels,
                  downscale_factors,
-                 num_tokens,
                  d_model,
                  n_head,
                  list_of_num_layers,
@@ -25,96 +26,103 @@ class TransformerDownscaler(Downscaler):
                  dropout
                  ):
         super(TransformerDownscaler, self).__init__(downscale_factors)
-        assert len(downscale_factors) == len(list_of_num_layers)
 
+        assert len(downscale_factors) == len(list_of_num_layers), \
+            'number of transfo must match number of downscaling factors'
+
+        #
+
+        # Sequence specs for the input of the transfo stack
+        self.sequence_length = np.prod(downscale_factors)
         positional_embedding_size = 8
-        self.sequence_length = num_tokens
-        self.positional_embeddings = nn.Parameter(
-            torch.randn((1,
-                         num_tokens,
-                         positional_embedding_size))
-        )
-
-        self.output_dim = output_dim
+        self.num_channels = num_channels
+        self.num_events = self.sequence_length // self.num_channels
+        assert self.sequence_length % np.prod(downscale_factors) == 0
 
         self.input_linear = nn.Linear(
             input_dim,
             d_model - positional_embedding_size
         )
 
+        self.target_channel_embeddings = nn.Parameter(
+            torch.randn((1,                             # batch
+                         1,                             # blocks
+                         self.num_channels,             # tokens
+                         positional_embedding_size))    # dim
+        )
+
+        self.output_dim = output_dim
         self.output_linear = nn.Linear(
             d_model,
             self.output_dim)
 
-        encoder_layer = TransformerEncoderLayer(
-            d_model=d_model,
-            nhead=n_head,
-            dim_feedforward=dim_feedforward,
-            dropout=dropout
-        )
-        self.transformers = nn.ModuleList([
-            TransformerEncoder(
+        transformers = []
+        num_events = self.num_events
+        num_channels = self.num_channels
+        for downscale_factor, num_layers in zip(downscale_factors, list_of_num_layers):
+            encoder_layer = TransformerEncoderLayerCustom(
+                d_model=d_model,
+                nhead=n_head,
+                attention_bias_type='relative_attention',
+                num_channels=num_channels,
+                num_events=num_events,
+                dim_feedforward=dim_feedforward,
+                dropout=dropout
+            )
+            transfo = TransformerEncoderCustom(
                 encoder_layer=encoder_layer,
                 num_layers=num_layers,
             )
-            for num_layers in list_of_num_layers]
-        )
+            transformers.append(transfo)
+
+            # Next transfo parameters
+            num_events = (num_events * num_channels) // downscale_factor
+            if num_channels > 1:
+                assert num_channels <= downscale_factor, \
+                    f'First stack of downscaler transfo has to be larger than input num channels = {num_channels}'
+                num_channels = 1
+
+        # Stack of transformers, each downscaling of a factor indicated in downscale_factors
+        self.transformers = nn.ModuleList(transformers)
 
     def forward(self, embedded_seq):
         """
         (batch_size, sequence_length, input_dim)
         :return: (batch_size, sequence_length // prod(downscale_factors), output_dim)
         """
-        batch_size = embedded_seq.size(0)
+        batch_size, seq_len, dim = embedded_seq.shape
+        assert seq_len % self.sequence_length == 0
+        num_blocks = seq_len // self.sequence_length
+        embedded_seq = embedded_seq.view(batch_size, num_blocks, self.sequence_length, dim)
 
-        # to d_model - positional_embedding_size
+        # Embed input
         embedded_seq = self.input_linear(embedded_seq)
         # positional embedding
-        embedded_seq = torch.cat(
-            [embedded_seq, self.positional_embeddings.repeat(batch_size, 1, 1)],
-            dim=2
-        )
+        embedded_seq = torch.cat([
+            embedded_seq,
+            self.target_channel_embeddings.repeat(batch_size, num_blocks, self.num_events, 1)
+        ], dim=3)
 
-        output = embedded_seq.transpose(0, 1)
-        attention_masks = self.get_attention_masks()
-        for transformer, downscale, mask in zip(self.transformers,
-                                                self.downscale_factors,
-                                                attention_masks):
-            output = transformer(output, mask=mask)
-            # downscale
-            output = output[::downscale]
+        # Prepare data: (b, l, d) and Time first
+        transfo_input = embedded_seq.view(batch_size * num_blocks, self.sequence_length, -1).transpose(0, 1)
 
-        output = output.transpose(0, 1).contiguous()
+        ############################################################
+        # Simple transfo ?
+        # output, attentions = self.transformer(transfo_input)
+        # OR
+        # Downscaling stack
+        for transfo, downscaling in zip(self.transformers, self.downscale_factors):
+            output, attentions = transfo(transfo_input)
+            transfo_input = output[::downscaling]
+        output = transfo_input
+        ############################################################
 
+        assert output.shape[0] == 1
+        # Take the last output token as embedding and reshape
+        output = output[0].view(batch_size, num_blocks, -1)
         # project to output_dim
         output = self.output_linear(output)
         return output
-
-    def get_attention_masks(self):
-        """
-        Returns list of src_attn_mask for each block of transformers
-        Depends on attention_masking_type
-        :return:
-        """
-        if self.attention_masking_type is None:
-            return [None] * len(self.downscale_factors)
-        elif self.attention_masking_type == 'block':
-            block_sizes = [
-                int(np.prod(self.downscale_factors[i:]))
-                for i in range(len(self.downscale_factors))
-            ]
-            sequence_sizes = [
-                self.sequence_length // int(np.prod(self.downscale_factors[:i]))
-                for i in range(len(self.downscale_factors))
-            ]
-            return [
-                self._block_attention_mask(block_size=block_size,
-                                           sequence_size=sequence_size)
-                for block_size, sequence_size in zip(block_sizes, sequence_sizes)
-            ]
-
-        else:
-            return NotImplementedError
 
     @staticmethod
     def _block_attention_mask(block_size, sequence_size):
