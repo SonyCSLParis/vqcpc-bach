@@ -57,7 +57,17 @@ as well as the complete re-harmonisation of all the chorales found in our corpus
     python main_decoder.py -c models/decoder_*/config.py 
 
 ## Experiments
-Parameters
+### Clusters
+- Sounds
+- 3D map
+- few words about how the different methods lead to clustering based on different features
+
+### Template-based generation
+QUOI MONTRER
+- petits fragments original // 3 variations
+- rewritting d'un chorale complet
+
+Parameters encoder
 - Negative sampling scheme + student
 - Quantization bottleneck
 - Type of downsampling
@@ -75,10 +85,10 @@ Decoding is done with a relative transformer (**DESCRIBED IN PAPER**)
 | Same sequence and no quantization |  |
 | Student and no quantization| X | 
 
-Quoi montrer
-- clusters
-    - avec sons
-    - organistaion dans l'espace si c'est pertinent
-    - comparer clusters selon la méthode utilisée (student, random, sameSeq)
-- petits fragments original // 3 variations
-- rewritting d'un chorale complet
+Parameters decoder
+- relative or not transformer
+
+|       |  Transformer | Relative transformer  
+| :--- |:---:| :---:
+| Random |  | 
+| Same sequence |  |
