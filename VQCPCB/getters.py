@@ -14,7 +14,6 @@ from VQCPCB.decoders.decoder import Decoder
 from VQCPCB.decoders.decoder_relative import DecoderRelative
 from VQCPCB.downscalers.lstm_downscaler import LstmDownscaler
 from VQCPCB.downscalers.relative_transformer_downscaler import RelativeTransformerDownscaler
-from VQCPCB.downscalers.transformer_downscaler import TransformerDownscaler
 from VQCPCB.encoder import Encoder
 from VQCPCB.priors.prior_relative import PriorRelative
 from VQCPCB.student_encoder_trainer import StudentEncoderTrainer
@@ -50,32 +49,17 @@ def get_dataloader_generator(
 
 def get_downscaler(downscaler_type,
                    downscaler_kwargs):
-    if downscaler_type == 'transformer_downscaler':
-        return TransformerDownscaler(
-            input_dim=downscaler_kwargs['input_dim'],
-            output_dim=downscaler_kwargs['output_dim'],
-            num_channels=downscaler_kwargs['num_channels'],
-            downscale_factors=downscaler_kwargs['downscale_factors'],
-            d_model=downscaler_kwargs['d_model'],
-            n_head=downscaler_kwargs['n_head'],
-            list_of_num_layers=downscaler_kwargs['list_of_num_layers'],
-            dim_feedforward=downscaler_kwargs['dim_feedforward'],
-            dropout=downscaler_kwargs['dropout']
-        )
-    elif downscaler_type == 'relative_transformer_downscaler':
+    if downscaler_type == 'relative_transformer_downscaler':
         return RelativeTransformerDownscaler(
             input_dim=downscaler_kwargs['input_dim'],
             output_dim=downscaler_kwargs['output_dim'],
             downscale_factors=downscaler_kwargs['downscale_factors'],
-            num_tokens=downscaler_kwargs['num_tokens'],
             num_channels=downscaler_kwargs['num_channels'],
             d_model=downscaler_kwargs['d_model'],
             n_head=downscaler_kwargs['n_head'],
             list_of_num_layers=downscaler_kwargs['list_of_num_layers'],
             dim_feedforward=downscaler_kwargs['dim_feedforward'],
-            attention_masking_type=downscaler_kwargs['attention_masking_type'],
             dropout=downscaler_kwargs['dropout'],
-            attention_bias_type=downscaler_kwargs['attention_bias_type']
         )
     elif downscaler_type == 'lstm_downscaler':
         return LstmDownscaler(
