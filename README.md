@@ -3,7 +3,7 @@ Gaëtan Hadjeres, Sony CSL, Paris, France (gaetan.hadjeres@sony.com)\
 Léopold Crestel, Sony CSL, Paris, France (leopold.crestel@sony.com)
 
 This is the companion github of the paper 
-[Vector Quantized Contrastive Predictive Coding for Template-based Music Generation](LIEN SITE).
+[Vector Quantized Contrastive Predictive Coding for Template-based Music Generation](www.google.com).
 In this paper, we proposed a flexible method for generating variations of discrete sequences 
 in which tokens can be grouped into basic units, like sentences in a text or bars in music.
 More precisely, given a template sequence, we aim at producing novel sequences sharing perceptible similarities 
