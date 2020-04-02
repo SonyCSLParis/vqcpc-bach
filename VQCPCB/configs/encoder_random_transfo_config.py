@@ -29,7 +29,7 @@ config = {
         embedding_size=32
     ),
     # --- Downscaler ---
-    'downscaler_type': 'transformer_downscaler',
+    'downscaler_type': 'relative_transformer_downscaler',
     'downscaler_kwargs':           dict(
         # DCPC uses a Transformer
         downscale_factors=[4, 4],
