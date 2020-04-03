@@ -2,7 +2,7 @@ from pathlib import Path
 
 
 config = {
-    'config_encoder':              'models_aws/encoder_random_config_2020-03-31_12-52-30/config.py',
+    'config_encoder':              'models/encoder_random_config_2020-03-31_12-52-30/config.py',
     'training_method':             'decoder',
     'dataset':                     'bach',
 
@@ -34,9 +34,9 @@ config = {
     ),
     # ======== Training ========
     'lr':                          1e-4,
-    'batch_size':                  2,
-    'num_batches':                 2,
-    'num_epochs':                  2,
+    'batch_size':                  16,
+    'num_batches':                 None,
+    'num_epochs':                  20000,
 
     # ======== model ID ========
     'timestamp':                   None,

@@ -70,7 +70,7 @@ class MultiheadAttentionCustom(nn.Module):
 
         self.add_zero_attn = add_zero_attn
 
-        if attention_bias_type == 'no_attention_bias':
+        if attention_bias_type is None:
             self.attn_bias = None
         # elif attention_bias_type == 'relative_attention':
         #     seq_len_out = num_channels_q * num_events_q

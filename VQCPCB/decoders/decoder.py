@@ -92,7 +92,6 @@ class Decoder(nn.Module):
                              num_tokens_source,
                              positional_embedding_size))
             )
-
             self.target_positional_embeddings = nn.Parameter(
                 torch.randn((1,
                              self.num_tokens_target,
@@ -104,7 +103,6 @@ class Decoder(nn.Module):
                              self.num_channels,
                              positional_embedding_size))
             )
-
             self.num_events_per_code = self.total_upscaling // self.num_channels
             # Position relative to a code
             self.target_events_positioning_embeddings = nn.Parameter(
@@ -112,14 +110,6 @@ class Decoder(nn.Module):
                              self.num_events_per_code,
                              positional_embedding_size))
             )
-
-            # we use the codebook_dim as the embedding dim of the source tokens
-            source_embedding_dim = self.encoder.quantizer.codebook_dim
-            codebook_size = self.encoder.quantizer.codebook_size ** self.encoder.quantizer.num_codebooks
-            self.source_embeddings = nn.Embedding(
-                codebook_size, source_embedding_dim
-            )
-        ######################################################
 
         ######################################################
         #  Encoder Transformer
@@ -143,12 +133,16 @@ class Decoder(nn.Module):
                 dim_feedforward=dim_feedforward,
                 dropout=dropout
             )
-        ######################################################
+
+        custom_encoder = TransformerEncoderCustom(
+            encoder_layer=encoder_layer,
+            num_layers=num_encoder_layers
+        )
 
         ######################################################
         #  Decoder Transformer
         if transformer_type == 'absolute':
-            encoder_layer = TransformerDecoderLayerCustom(
+            decoder_layer = TransformerDecoderLayerCustom(
                 d_model=d_model,
                 nhead=n_head,
                 attention_bias_type_self=None,
@@ -187,17 +181,14 @@ class Decoder(nn.Module):
                     dim_feedforward=dim_feedforward,
                     dropout=dropout
                 )
-        ######################################################
 
-        custom_encoder = TransformerEncoderCustom(
-            encoder_layer=encoder_layer,
-            num_layers=num_encoder_layers
-        )
         custom_decoder = TransformerDecoderCustom(
             decoder_layer=decoder_layer,
             num_layers=num_decoder_layers
         )
 
+        ######################################################
+        # Complete Transformer
         self.transformer = TransformerCustom(
             d_model=self.d_model,
             nhead=n_head,
@@ -205,22 +196,39 @@ class Decoder(nn.Module):
             custom_decoder=custom_decoder
         )
 
-        # Target embeddings is in data_processor
-        self.linear_target = nn.Linear(self.data_processor.embedding_size
-                                       + positional_embedding_size * 2,
-                                       self.d_model)
-        self.linear_source = nn.Linear(
-            source_embedding_dim,
-            self.d_model
-        )
-
+        ######################################################
+        # Target pre-processing
+        # (Target embeddings is in data_processor, so no need to have an emebdding here.)
+        # Just a linear to map to the proper dimension
+        if self.transformer_type == 'absolute':
+            linear_target_input_size = self.data_processor.embedding_size + positional_embedding_size
+        elif self.transformer_type == 'relative':
+            linear_target_input_size = self.data_processor.embedding_size + positional_embedding_size * 2
+        self.linear_target = nn.Linear(linear_target_input_size, self.d_model)
+        # start of sentence
         self.sos = nn.Parameter(torch.randn((1, 1, self.d_model)))
 
+        ######################################################
+        # Source pre-processing
+        # Re-embed the codes extracted by the encoder (instead of using directly the z computed by the encoder,
+        # we use the cluster indices computed by the encoder and learn a new embedding jointly with the decoder)
+        if self.transformer_type == 'relative':
+            source_embedding_dim = self.d_model
+        elif self.transformer_type == 'absolute':
+            source_embedding_dim = self.d_model - positional_embedding_size
+        codebook_size = self.encoder.quantizer.codebook_size ** self.encoder.quantizer.num_codebooks
+        self.source_embeddings = nn.Embedding(
+            codebook_size, source_embedding_dim
+        )
+
+        ######################################################
+        # Output dimension adjustment
         self.pre_softmaxes = nn.ModuleList([nn.Linear(self.d_model, num_tokens_of_channel)
                                             for num_tokens_of_channel in self.num_tokens_per_channel
                                             ]
                                            )
 
+        ######################################################
         # optim
         self.optimizer = None
 
@@ -397,7 +405,6 @@ class Decoder(nn.Module):
         batch_size = source.size(0)
         # embed
         source_seq = self.source_embeddings(source)
-        source_seq = self.linear_source(source_seq)
 
         target = self.data_processor.preprocess(target)
         target_embedded = self.data_processor.embed(target)
@@ -405,18 +412,30 @@ class Decoder(nn.Module):
 
         num_tokens_target = target_seq.size(1)
 
-        # add positional embeddings
-        target_seq = torch.cat([
-            target_seq,
-            self.target_channel_embeddings.repeat(batch_size,
-                                                  num_tokens_target // self.num_channels,
-                                                  1),
-            self.target_events_positioning_embeddings
-                .repeat_interleave(self.num_channels, dim=1)
-                .repeat((batch_size, num_tokens_target // self.total_upscaling, 1))
-        ], dim=2)
+        if self.transformer_type == 'relative':
+            # add positional embeddings
+            target_seq = torch.cat([
+                target_seq,
+                self.target_channel_embeddings.repeat(batch_size,
+                                                      num_tokens_target // self.num_channels,
+                                                      1),
+                self.target_events_positioning_embeddings
+                    .repeat_interleave(self.num_channels, dim=1)
+                    .repeat((batch_size, num_tokens_target // self.total_upscaling, 1))
+            ], dim=2)
+        elif self.transformer_type == 'absolute':
+            source_seq = torch.cat([
+                source_seq,
+                self.source_positional_embeddings.repeat(batch_size, 1, 1)
+            ], dim=2)
+            target_seq = torch.cat([
+                target_seq,
+                self.target_positional_embeddings.repeat(batch_size, 1, 1)
+            ], dim=2)
+
         target_seq = self.linear_target(target_seq)
 
+        # time dim first
         source_seq = source_seq.transpose(0, 1)
         target_seq = target_seq.transpose(0, 1)
 
@@ -432,7 +451,6 @@ class Decoder(nn.Module):
         # masks: anti-causal for encoder, causal for decoder
         source_length = source_seq.size(0)
         target_length = target_seq.size(0)
-
         # cross-masks
         if self.cross_attention_type in ['diagonal', 'full']:
             memory_mask = None
@@ -448,9 +466,9 @@ class Decoder(nn.Module):
         # self-encoder masks
         if self.encoder_attention_type in ['diagonal', 'full']:
             source_mask = None
-        elif self.cross_attention_type == 'causal':
+        elif self.encoder_attention_type == 'causal':
             source_mask = self._generate_causal_mask(source_length)
-        elif self.cross_attention_type == 'anticausal':
+        elif self.encoder_attention_type == 'anticausal':
             source_mask = self._generate_anticausal_mask(source_length)
 
         # Causal target mask
@@ -586,7 +604,9 @@ class Decoder(nn.Module):
                 cuda_variable(x_original_single.long()),
                 x
             ], dim=0)
-            recoding = self.encoders_stack(x_re_encode).detach().cpu().numpy()
+            _, recoding_, _ = self.encoder(x_re_encode)
+            recoding_ = recoding_.detach().cpu().numpy()
+            recoding = self.encoder.merge_codes(recoding_)
 
         # to score
         original_and_reconstruction = self.data_processor.postprocess(original=x_original.long(),
@@ -602,10 +622,8 @@ class Decoder(nn.Module):
         with open(f'{self.model_dir}/generations/{timestamp}.txt', 'w') as ff:
             for batch_ind in range(len(recoding)):
                 aa = recoding[batch_ind]
-                for enc_ind in range(self.encoders_stack.num_encoders):
-                    ff.write(' , '.join(map(str, list(aa[:, enc_ind]))))
-                    ff.write('\n')
-                ff.write('\n\n')
+                ff.write(' , '.join(map(str, list(aa))))
+                ff.write('\n')
 
         # Write scores
         scores = []
