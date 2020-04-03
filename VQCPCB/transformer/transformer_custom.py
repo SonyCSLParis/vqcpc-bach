@@ -3,6 +3,7 @@ Overwrite pytorch transformer layers
 Only TransformerEncoder and TransformerDecoder need to be overwritten
 """
 
+
 import torch
 from torch import nn
 from torch.nn import functional as F

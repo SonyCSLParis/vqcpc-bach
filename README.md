@@ -62,14 +62,12 @@ as well as the complete re-harmonisation of all the chorales found in our corpus
 - 3D map
 - few words about how the different methods lead to clustering based on different features
 
-|       |  LSTM downscaler | Transformer downscaler  
-| :--- |:---:| :---:
-| Random | |
-| Same sequence | |
-| Student | X |
-| Random and no quantization | |
-| Same sequence and no quantization |  |
-| Student and no quantization| X | 
+|       |  Random | Same sequence | Student  
+| :--- |:---:| :---: | :---:
+| LSTM | !audio[ title ]( url ){ size=10 duration=10 cycle=forever } | | X
+| Transformer | | |
+| LSTM and no quantization | | | X
+| Transformer and no quantization |  | | 
 
 ### Template-based generation
 QUOI MONTRER
@@ -88,18 +86,16 @@ Decoding is done with a relative transformer (**DESCRIBED IN PAPER**)
 
 **ON MET DES SAMPLES DANS LES CASES**
 
-|       |  LSTM downscaler | Transformer downscaler  
-| :--- |:---:| :---:
-| Random | |
-| Same sequence | |
-| Student | X |
-| Random and no quantization | |
-| Same sequence and no quantization |  |
-| Student and no quantization| X | 
+|       |  Random | Same sequence | Student  
+| :--- |:---:| :---: | :---:
+| LSTM | | | X
+| Transformer | | |
+| LSTM and no quantization | | | X
+| Transformer and no quantization |  | | 
 
 Parameters decoder
-- Attention masks AC//D//C ; F//F//C ; AC//AC//C
-- relative_decoder VS standard transformer with positioning absolue absurde + pas de SRel
+- Models Baseline_Transfo ; AC//D//C ; F//F//C ; AC//AC//C
+- top-k sampling
 
 |       |  Transformer | Relative transformer  
 | :--- |:---:| :---:

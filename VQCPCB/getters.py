@@ -1,7 +1,5 @@
-import importlib
-import os
-
 import numpy as np
+
 from VQCPCB.auxiliary_decoders.auxiliary_decoder import AuxiliaryDecoder
 from VQCPCB.auxiliary_decoders.auxiliary_decoder_relative import AuxiliaryDecoderRelative
 from VQCPCB.data_processor.bach_cpc_data_processor import BachCPCDataProcessor
@@ -9,18 +7,19 @@ from VQCPCB.data_processor.bach_data_processor import BachDataProcessor
 from VQCPCB.data_processor.data_processor import DataProcessor
 from VQCPCB.dataloaders.bach_cpc_dataloader import BachCPCDataloaderGenerator
 from VQCPCB.dataloaders.bach_dataloader import BachDataloaderGenerator
-from VQCPCB.vqcpc_encoder_trainer import VQCPCEncoderTrainer
 from VQCPCB.decoders.decoder import Decoder
+from VQCPCB.decoders.decoder_absolute import DecoderAbsolute
 from VQCPCB.decoders.decoder_relative import DecoderRelative
 from VQCPCB.downscalers.lstm_downscaler import LstmDownscaler
 from VQCPCB.downscalers.relative_transformer_downscaler import RelativeTransformerDownscaler
 from VQCPCB.encoder import Encoder
 from VQCPCB.priors.prior_relative import PriorRelative
+from VQCPCB.quantizer.vector_quantizer import ProductVectorQuantizer, NoQuantization
 from VQCPCB.student_encoder_trainer import StudentEncoderTrainer
 from VQCPCB.teachers.teacher_absolute import TeacherAbsolute
 from VQCPCB.teachers.teacher_relative import TeacherRelative
 from VQCPCB.upscalers.mlp_upscaler import MlpUpscaler
-from VQCPCB.quantizer.vector_quantizer import ProductVectorQuantizer, NoQuantization
+from VQCPCB.vqcpc_encoder_trainer import VQCPCEncoderTrainer
 
 
 def get_dataloader_generator(
@@ -204,39 +203,25 @@ def get_encoder(model_dir,
 def get_teacher(teacher_type,
                 teacher_kwargs,
                 dataloader_generator):
-    if teacher_type == 'absolute':
-        raise NotImplementedError
-        # todo use dataloader_generator
-        return TeacherAbsolute(
-            num_layers=teacher_kwargs['num_layers'],
-            num_tokens_per_channel=teacher_kwargs['num_tokens_per_channel'],
-            d_model=teacher_kwargs['d_model'],
-            positional_embedding_size=teacher_kwargs['positional_embedding_size'],
-            dim_feedforward=teacher_kwargs['dim_feedforward'],
-            n_head=teacher_kwargs['n_head'],
-            num_tokens=teacher_kwargs['num_tokens'],
-            dropout=teacher_kwargs['dropout'],
-            input_dim=teacher_kwargs['codebook_dim'],
-        )
-    elif teacher_type == 'relative':
-        data_processor_config = teacher_kwargs['data_processor_config']
-        data_processor = get_data_processor(dataloader_generator=dataloader_generator,
-                                            data_processor_type=data_processor_config[
-                                                'data_processor_type'],
-                                            data_processor_kwargs=data_processor_config[
-                                                'data_processor_kwargs']
-                                            )
-        return TeacherRelative(
-            num_layers=teacher_kwargs['num_layers'],
-            num_tokens_per_channel=teacher_kwargs['num_tokens_per_channel'],
-            d_model=teacher_kwargs['d_model'],
-            positional_embedding_size=teacher_kwargs['positional_embedding_size'],
-            dim_feedforward=teacher_kwargs['dim_feedforward'],
-            n_head=teacher_kwargs['n_head'],
-            dropout=teacher_kwargs['dropout'],
-            num_tokens=teacher_kwargs['num_tokens'],
-            data_processor=data_processor
-        )
+
+    data_processor_config = teacher_kwargs['data_processor_config']
+    data_processor = get_data_processor(dataloader_generator=dataloader_generator,
+                                        data_processor_type=data_processor_config[
+                                            'data_processor_type'],
+                                        data_processor_kwargs=data_processor_config[
+                                            'data_processor_kwargs']
+                                        )
+    return TeacherRelative(
+        num_layers=teacher_kwargs['num_layers'],
+        num_tokens_per_channel=teacher_kwargs['num_tokens_per_channel'],
+        d_model=teacher_kwargs['d_model'],
+        positional_embedding_size=teacher_kwargs['positional_embedding_size'],
+        dim_feedforward=teacher_kwargs['dim_feedforward'],
+        n_head=teacher_kwargs['n_head'],
+        dropout=teacher_kwargs['dropout'],
+        num_tokens=teacher_kwargs['num_tokens'],
+        data_processor=data_processor
+    )
 
 
 def get_auxiliary_decoder(auxiliary_decoder_type,
@@ -289,6 +274,9 @@ def get_decoder(model_dir,
             dataloader_generator=dataloader_generator,
             data_processor=data_processor,
             encoder=encoder,
+            transformer_type='absolute',
+            encoder_attention_type='anticausal',  # anticausal, causal, diagonal or full
+            cross_attention_type='full',  # anticausal, causal, diagonal or full
             d_model=decoder_kwargs['d_model'],
             num_encoder_layers=decoder_kwargs['num_encoder_layers'],
             num_decoder_layers=decoder_kwargs['num_decoder_layers'],
@@ -296,14 +284,20 @@ def get_decoder(model_dir,
             dim_feedforward=decoder_kwargs['dim_feedforward'],
             dropout=decoder_kwargs['dropout'],
             positional_embedding_size=decoder_kwargs['positional_embedding_size'],
+            num_channels_encoder=num_channels_encoder,
+            num_events_encoder=num_events_encoder,
+            num_channels_decoder=num_channels_decoder,
+            num_events_decoder=num_events_decoder,
         )
     elif decoder_type == 'transformer_relative':
-        decoder = DecoderRelative(
+        decoder = Decoder(
             model_dir=model_dir,
             dataloader_generator=dataloader_generator,
             data_processor=data_processor,
             encoder=encoder,
-            diagonal_cross_attention=False,
+            transformer_type='relative',
+            encoder_attention_type='anticausal',
+            cross_attention_type='full',
             d_model=decoder_kwargs['d_model'],
             num_encoder_layers=decoder_kwargs['num_encoder_layers'],
             num_decoder_layers=decoder_kwargs['num_decoder_layers'],
@@ -317,12 +311,35 @@ def get_decoder(model_dir,
             num_events_decoder=num_events_decoder,
         )
     elif decoder_type == 'transformer_relative_diagonal':
-        decoder = DecoderRelative(
+        decoder = Decoder(
             model_dir=model_dir,
             dataloader_generator=dataloader_generator,
             data_processor=data_processor,
             encoder=encoder,
-            diagonal_cross_attention=True,
+            transformer_type='relative',
+            encoder_attention_type='anticausal',
+            cross_attention_type='diagonal',
+            d_model=decoder_kwargs['d_model'],
+            num_encoder_layers=decoder_kwargs['num_encoder_layers'],
+            num_decoder_layers=decoder_kwargs['num_decoder_layers'],
+            n_head=decoder_kwargs['n_head'],
+            dim_feedforward=decoder_kwargs['dim_feedforward'],
+            dropout=decoder_kwargs['dropout'],
+            positional_embedding_size=decoder_kwargs['positional_embedding_size'],
+            num_channels_encoder=num_channels_encoder,
+            num_events_encoder=num_events_encoder,
+            num_channels_decoder=num_channels_decoder,
+            num_events_decoder=num_events_decoder,
+        )
+    elif decoder_type == 'transformer_relative_full':
+        decoder = Decoder(
+            model_dir=model_dir,
+            dataloader_generator=dataloader_generator,
+            data_processor=data_processor,
+            encoder=encoder,
+            transformer_type='relative',
+            encoder_attention_type='full',
+            cross_attention_type='full',
             d_model=decoder_kwargs['d_model'],
             num_encoder_layers=decoder_kwargs['num_encoder_layers'],
             num_decoder_layers=decoder_kwargs['num_decoder_layers'],

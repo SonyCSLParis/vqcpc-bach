@@ -94,6 +94,21 @@ class Encoder(nn.Module):
 
         return z_quantized, encoding_indices, quantization_loss
 
+    def merge_codes(self, codes):
+        """
+        Merge the codes of a stack.
+        Different
+        :param codes:
+        :return:
+        """
+        batch_dim, seq_len, num_codebooks = codes.shape
+        if num_codebooks == 1:
+            return codes[:, :, 0]
+        ret = codes[:, :, 0]
+        for encoder_index in range(1, num_codebooks):
+            ret += codes[:, :, encoder_index] * (self.quantizer.codebook_size ** encoder_index)
+        return ret
+
     def plot_clusters(self, dataloader_generator, split_name, batch_size=32, num_batches=64):
         """
         Visualize elements belonging to the same cluster

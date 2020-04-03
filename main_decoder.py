@@ -65,7 +65,7 @@ def main(train,
                           dataloader_generator=dataloader_generator,
                           config=config_encoder
                           )
-    encoder.load(early_stopped=False)
+    encoder.load(early_stopped=False, device=device)
 
     # === Decoder ====
     dataloader_generator = get_dataloader_generator(
@@ -114,13 +114,13 @@ def main(train,
 
     scores = decoder.generate(temperature=1.0,
                               batch_size=2,
-                              plot_attentions=False)
+                              plot_attentions=True)
     # for score in scores:
     #     score.show()
 
-    # scores = decoder.generate_reharmonisation(
-    #     temperature=1.2,
-    #     num_reharmonisations=3)
+    scores = decoder.generate_reharmonisation(
+        temperature=1.2,
+        num_reharmonisations=3)
     # for score in scores:
     #     score.show()
 
