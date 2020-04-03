@@ -41,7 +41,7 @@ def main(train,
     if config['timestamp'] is not None:
         timestamp = config['timestamp']
     else:
-        timestamp = datetime.now().strftime('%Y-%m-%d_%H:%M:%S')
+        timestamp = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
         config['timestamp'] = timestamp
 
     if load:
@@ -91,9 +91,9 @@ def main(train,
 
     if load:
         if overfitted:
-            decoder.load(early_stopped=False)
+            decoder.load(early_stopped=False, device=device)
         else:
-            decoder.load(early_stopped=True)
+            decoder.load(early_stopped=True, device=device)
         decoder.to(device)
 
     if train:
@@ -112,9 +112,9 @@ def main(train,
             num_workers=num_workers
         )
 
-    scores = decoder.generate(temperature=1.0,
-                              batch_size=2,
-                              plot_attentions=True)
+    # scores = decoder.generate(temperature=1.0,
+    #                           batch_size=2,
+    #                           plot_attentions=True)
     # for score in scores:
     #     score.show()
 
