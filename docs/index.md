@@ -16,7 +16,7 @@
 # Vector Quantized Contrastive Predictive Coding for Template-based Music
 
 This repository describes the additional material and experiments around the paper ["Vector Quantized Contrastive Predictive Coding for Template-based Music
-Generation"](paper.pdf) submitted at the 2020 IJCAI-PRICAI Conference.
+Generation"](paper.pdf).
 
 ABSTRACT
 
@@ -83,6 +83,3 @@ Here, we directly embed the exposed elements
 ## Examples in the paper
 
 
-## Code
-
-**The full code will only be released upon acceptance of the paper at the 2020 IJCAI-PRICAI Conference**
