@@ -614,7 +614,7 @@ class Decoder(nn.Module):
 
         ###############################
         # Saving
-        timestamp = datetime.now().strftime('%Y-%m-%d_%H:%M:%S')
+        timestamp = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
         if not os.path.exists(f'{self.model_dir}/generations'):
             os.mkdir(f'{self.model_dir}/generations')
 
@@ -656,7 +656,7 @@ class Decoder(nn.Module):
         self.eval()
         size_encoding = encoding_indices.size(1)
 
-        total_upscaling = int(np.prod(self.encoders_stack.downscale_factors))
+        total_upscaling = int(np.prod(self.encoder.downscaler.downscale_factors))
         num_tokens_indices = self.data_processor.num_tokens // total_upscaling
 
         num_events_full_chorale = size_encoding * total_upscaling // self.data_processor.num_channels
@@ -693,14 +693,34 @@ class Decoder(nn.Module):
                             t_begin * self.num_events_per_code: t_end * self.num_events_per_code, :]
                         weights_per_voice = self.forward(input_encoding_indices,
                                                          input_chorale)['weights_per_category']
+
+                        # Keep only the last token predictions of the first batch item (batch size 1), apply a
+                        # temperature coefficient and filter
                         weights = weights_per_voice[channel_index]
-                        probs = torch.softmax(
-                            weights[:, t_relative * self.num_events_per_code + relative_event, :],
-                            dim=1)
-                        p = to_numpy(probs)
-                        # temperature ?!
-                        p = np.exp(np.log(p + 1e-20) * temperature)
-                        p = p / p.sum(axis=1, keepdims=True)
+                        logits = weights[:, t_relative * self.num_events_per_code + relative_event, :] / temperature
+                        # Remove meta symbols
+                        for sym in [START_SYMBOL, END_SYMBOL, PAD_SYMBOL]:
+                            sym_index = self.dataloader_generator.dataset.note2index_dicts[channel_index][sym]
+                            logits[:, sym_index] = -float("inf")
+                        # Top-p sampling
+                        top_k = 0
+                        top_p = 0.9
+                        filtered_logits = []
+                        for logit in logits:
+                            filter_logit = top_k_top_p_filtering(logit, top_k=top_k, top_p=top_p)
+                            filtered_logits.append(filter_logit)
+                        filtered_logits = torch.stack(filtered_logits, dim=0)
+                        # Sample from the filtered distribution
+                        p = to_numpy(torch.softmax(filtered_logits, dim=-1))
+
+                        # weights = weights_per_voice[channel_index]
+                        # probs = torch.softmax(
+                        #     weights[:, t_relative * self.num_events_per_code + relative_event, :],
+                        #     dim=1)
+                        # p = to_numpy(probs)
+                        # # temperature ?!
+                        # p = np.exp(np.log(p + 1e-20) * temperature)
+                        # p = p / p.sum(axis=1, keepdims=True)
 
                         for batch_index in range(batch_size):
                             new_pitch_index = np.random.choice(np.arange(
@@ -754,8 +774,6 @@ class Decoder(nn.Module):
         import music21
         cl = music21.corpus.chorales.ChoraleList()
         print(cl.byBWV.keys())
-        # chorale_m21 = music21.corpus.chorales.getByTitle(cl.byBWV[437]['title'])
-        # chorale_m21 = music21.corpus.chorales.getByTitle(cl.byBWV[289]['title'])
 
         for bwv in cl.byBWV.keys():
             chorale_m21 = music21.corpus.chorales.getByTitle(cl.byBWV[bwv]['title'])
@@ -794,10 +812,10 @@ class Decoder(nn.Module):
             ).long()
             last_chunk = torch.cat([last_chunk, end_chunk_, completion_chunk], 1)
             x_chunks[-1] = last_chunk
-
             x_chunks = torch.cat([start_chunk] + x_chunks + [end_chunk], dim=0)
-            encoding_indices_stack = self.encoders_stack(x)
-            encoding_indices = self.encoders_stack.merge_codes(encoding_indices_stack)
+
+            _, encoding_indices_stack, _ = self.encoder(x_chunks)
+            encoding_indices = self.encoder.merge_codes(encoding_indices_stack)
             print(encoding_indices.size())
 
             # glue all encoding indices
@@ -806,7 +824,7 @@ class Decoder(nn.Module):
                 1
             )
             # compute code_index start and stop
-            total_upscaling = int(np.prod(self.encoders_stack.downscale_factors))
+            total_upscaling = int(np.prod(self.encoder.downscaler.downscale_factors))
             code_index_start = start_chunk.size(1) * self.num_channels // total_upscaling
             code_index_end = encoding_indices.size(1) - (
                     end_chunk.size(1) + completion_chunk.size(1)) * self.num_channels // \

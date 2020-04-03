@@ -145,7 +145,7 @@ class ChoraleBeatsDataset(Dataset):
                         if semi_tone not in chorale_transpositions:
                             (chorale_tensor,
                              metadata_tensor) = (
-                                self._transposed_score_and_metadata_tensors(
+                                self.transposed_score_and_metadata_tensors(
                                     chorale,
                                     semi_tone=semi_tone))
                             chorale_transpositions.update(
@@ -182,7 +182,7 @@ class ChoraleBeatsDataset(Dataset):
         print(f'Sizes: {chorale_tensor_dataset.size()}, {metadata_tensor_dataset.size()}')
         return dataset
 
-    def _transposed_score_and_metadata_tensors(self, score, semi_tone):
+    def transposed_score_and_metadata_tensors(self, score, semi_tone):
         """
         Convert chorale to a couple (chorale_tensor, metadata_tensor),
         the original chorale is transposed semi_tone number of semi-tones

@@ -358,7 +358,7 @@ class PriorRelative(nn.Module):
                                                  num_decodings=num_decodings_per_generating_code)
 
         # save scores in model_dir
-        timestamp = datetime.now().strftime('%Y-%m-%d_%H:%M:%S')
+        timestamp = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
         if not os.path.exists(f'{self.model_dir}/generations'):
             os.mkdir(f'{self.model_dir}/generations')
 
