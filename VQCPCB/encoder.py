@@ -56,7 +56,7 @@ class Encoder(nn.Module):
             torch.save(self.upscaler.state_dict(), f'{model_dir}/upscaler')
         # print(f'Model {self.__repr__()} saved')
 
-    def load(self, early_stopped):
+    def load(self, early_stopped, device):
         print(f'Loading models {self.__repr__()}')
         if early_stopped:
             model_dir = f'{self.model_dir}/early_stopped'
@@ -67,11 +67,11 @@ class Encoder(nn.Module):
         if not os.path.exists(model_dir):
             model_dir = self.model_dir
 
-        self.data_processor.load_state_dict(torch.load(f'{model_dir}/data_processor'))
-        self.downscaler.load_state_dict(torch.load(f'{model_dir}/downscaler'))
-        self.quantizer.load_state_dict(torch.load(f'{model_dir}/quantizer'))
+        self.data_processor.load_state_dict(torch.load(f'{model_dir}/data_processor', map_location=torch.device(device)))
+        self.downscaler.load_state_dict(torch.load(f'{model_dir}/downscaler', map_location=torch.device(device)))
+        self.quantizer.load_state_dict(torch.load(f'{model_dir}/quantizer', map_location=torch.device(device)))
         if self.upscaler:
-            self.upscaler.load_state_dict(torch.load(f'{model_dir}/upscaler'))
+            self.upscaler.load_state_dict(torch.load(f'{model_dir}/upscaler', map_location=torch.device(device)))
 
     def forward(self, x, corrupt_labels=False):
         """

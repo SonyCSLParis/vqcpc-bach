@@ -114,9 +114,9 @@ class PriorRelative(nn.Module):
         self.encoder.save()
         # print(f'Model {self.__repr__()} saved')
 
-    def load(self):
+    def load(self, device):
         print(f'Loading models {self.__repr__()}')
-        self.load_state_dict(torch.load(f'{self.model_dir}/prior'))
+        self.load_state_dict(torch.load(f'{self.model_dir}/prior', map_location=torch.device(device)))
         self.encoder.load()
 
     def forward(self, x):

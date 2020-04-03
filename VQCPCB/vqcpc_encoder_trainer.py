@@ -91,7 +91,7 @@ class VQCPCEncoderTrainer(EncoderTrainer):
         torch.save(self.fks_module.state_dict(), f'{model_dir}/fks_module')
         # print(f'Model {self.__repr__()} saved')
 
-    def load(self, early_stopped):
+    def load(self, early_stopped, device):
         print(f'Loading models {self.__repr__()}')
         if early_stopped:
             model_dir = f'{self.model_dir}/early_stopped'
@@ -102,9 +102,9 @@ class VQCPCEncoderTrainer(EncoderTrainer):
         if not os.path.exists(model_dir):
             model_dir = self.model_dir
 
-        self.encoder.load(early_stopped=early_stopped)
-        self.c_module.load_state_dict(torch.load(f'{model_dir}/c_module'))
-        self.fks_module.load_state_dict(torch.load(f'{model_dir}/fks_module'))
+        self.encoder.load(early_stopped=early_stopped, device=device)
+        self.c_module.load_state_dict(torch.load(f'{model_dir}/c_module', map_location=torch.device(device)))
+        self.fks_module.load_state_dict(torch.load(f'{model_dir}/fks_module', map_location=torch.device(device)))
 
     def train(self):
         self.encoder.train()

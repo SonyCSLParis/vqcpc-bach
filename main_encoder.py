@@ -71,7 +71,7 @@ def main(train,
     )
 
     if load:
-        encoder_trainer.load(early_stopped=False)
+        encoder_trainer.load(early_stopped=False, device=device)
 
     encoder_trainer.to(device)
 

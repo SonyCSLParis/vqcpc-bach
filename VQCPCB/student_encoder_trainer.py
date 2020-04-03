@@ -78,16 +78,16 @@ class StudentEncoderTrainer(EncoderTrainer):
         torch.save(self.teacher.state_dict(), f'{model_dir}/teacher')
         # print(f'Model {model_dir} saved')
 
-    def load(self, early_stopped):
+    def load(self, early_stopped, device):
         print(f'Loading models {self.__repr__()}')
         print(f'Loading from {self.model_dir}')
         if early_stopped:
             model_dir = f'{self.model_dir}/early_stopped'
         else:
             model_dir = f'{self.model_dir}/overfitted'
-        self.encoder.load(early_stopped=early_stopped)
-        self.auxiliary_decoder.load_state_dict(torch.load(f'{model_dir}/decoder'))
-        self.teacher.load_state_dict(torch.load(f'{model_dir}/teacher'))
+        self.encoder.load(early_stopped=early_stopped, device=device)
+        self.auxiliary_decoder.load_state_dict(torch.load(f'{model_dir}/decoder', map_location=torch.device(device)))
+        self.teacher.load_state_dict(torch.load(f'{model_dir}/teacher', map_location=torch.device(device)))
 
     def train(self):
         self.encoder.train()
