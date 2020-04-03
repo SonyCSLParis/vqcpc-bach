@@ -38,13 +38,20 @@ class RelativeTransformerDownscaler(Downscaler):
 
         self.input_linear = nn.Linear(
             input_dim,
-            d_model - positional_embedding_size
+            d_model - 2 * positional_embedding_size
         )
 
         self.target_channel_embeddings = nn.Parameter(
             torch.randn((1,                             # batch
                          1,                             # blocks
                          self.num_channels,             # tokens
+                         positional_embedding_size))    # dim
+        )
+
+        self.events_positioning_embeddings = nn.Parameter(
+            torch.randn((1,                             # batch
+                         1,                             # blocks
+                         self.num_events,               # tokens
                          positional_embedding_size))    # dim
         )
 
@@ -97,7 +104,10 @@ class RelativeTransformerDownscaler(Downscaler):
         # positional embedding
         embedded_seq = torch.cat([
             embedded_seq,
-            self.target_channel_embeddings.repeat(batch_size, num_blocks, self.num_events, 1)
+            self.target_channel_embeddings.repeat(batch_size, num_blocks, self.num_events, 1),
+            self.events_positioning_embeddings
+                .repeat_interleave(self.num_channels, dim=2)
+                .repeat(batch_size, num_blocks, 1, 1)
         ], dim=3)
 
         # Prepare data: (b, l, d) and Time first
