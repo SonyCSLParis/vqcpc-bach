@@ -8,15 +8,12 @@ from VQCPCB.data_processor.data_processor import DataProcessor
 from VQCPCB.dataloaders.bach_cpc_dataloader import BachCPCDataloaderGenerator
 from VQCPCB.dataloaders.bach_dataloader import BachDataloaderGenerator
 from VQCPCB.decoders.decoder import Decoder
-from VQCPCB.decoders.decoder_absolute import DecoderAbsolute
-from VQCPCB.decoders.decoder_relative import DecoderRelative
 from VQCPCB.downscalers.lstm_downscaler import LstmDownscaler
 from VQCPCB.downscalers.relative_transformer_downscaler import RelativeTransformerDownscaler
 from VQCPCB.encoder import Encoder
 from VQCPCB.priors.prior_relative import PriorRelative
 from VQCPCB.quantizer.vector_quantizer import ProductVectorQuantizer, NoQuantization
 from VQCPCB.student_encoder_trainer import StudentEncoderTrainer
-from VQCPCB.teachers.teacher_absolute import TeacherAbsolute
 from VQCPCB.teachers.teacher_relative import TeacherRelative
 from VQCPCB.upscalers.mlp_upscaler import MlpUpscaler
 from VQCPCB.vqcpc_encoder_trainer import VQCPCEncoderTrainer
