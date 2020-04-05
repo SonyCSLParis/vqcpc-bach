@@ -30,7 +30,6 @@ config = {
         # list_of_num_layers=[3, 5],
         list_of_num_layers=[4, 4],
         dim_feedforward=2048,
-        attention_masking_type='block',  # None or 'block'
         # both are bidirectional
         attention_bias_type='relative_attention',
         dropout=0.1
