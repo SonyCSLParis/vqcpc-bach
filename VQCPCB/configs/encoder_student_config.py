@@ -47,9 +47,14 @@ config = {
     ),
 
     # --- Upscaler ---
-    'upscaler_type': None,
-    # 'upscaler_kwargs': dict(),
-
+    'upscaler_type': 'mlp_upscaler',  # mlp_upscaler
+    # 'upscaler_type': None,  # mlp_upscaler
+    'upscaler_kwargs': dict(
+        # DCPC uses a Transformer
+        output_dim=32,
+        hidden_size=512,
+        dropout=0.1
+    ),
     # ======== AuxiliaryNetworks =====
     'auxiliary_networks_kwargs':   {
         # multiplicative term in front of the quantization loss
