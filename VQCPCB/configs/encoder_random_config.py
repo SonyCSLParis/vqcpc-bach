@@ -54,7 +54,6 @@ config = {
     'upscaler_type': 'mlp_upscaler',  # mlp_upscaler
     # 'upscaler_type': None,  # mlp_upscaler
     'upscaler_kwargs': dict(
-        # DCPC uses a Transformer
         output_dim=32,
         hidden_size=512,
         dropout=0.1
