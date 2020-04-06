@@ -181,16 +181,23 @@ def get_encoder(model_dir,
             codebook_dim=quantizer_kwargs['codebook_dim'],
             initialize=quantizer_kwargs['initialize'],
             squared_l2_norm=quantizer_kwargs['squared_l2_norm'],
-            use_batch_norm=False,
+            use_batch_norm=quantizer_kwargs['use_batch_norm'],
             commitment_cost=quantizer_kwargs['commitment_cost']
         )
+
+        if config['upscaler_type'] is not None:
+            upscaler_kwargs['input_dim'] = quantizer_kwargs['codebook_dim']
+            upscaler = get_upscaler(upscaler_type=config['upscaler_type'],
+                                    upscaler_kwargs=upscaler_kwargs)
+        else:
+            upscaler = None
 
         encoder = Encoder(
             model_dir=model_dir,
             data_processor=data_processor,
             downscaler=downscaler,
             quantizer=quantizer,
-            upscaler=None
+            upscaler=upscaler
         )
         return encoder
     else:
@@ -200,7 +207,6 @@ def get_encoder(model_dir,
 def get_teacher(teacher_type,
                 teacher_kwargs,
                 dataloader_generator):
-
     data_processor_config = teacher_kwargs['data_processor_config']
     data_processor = get_data_processor(dataloader_generator=dataloader_generator,
                                         data_processor_type=data_processor_config[

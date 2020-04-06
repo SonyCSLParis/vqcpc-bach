@@ -30,7 +30,6 @@ config = {
         # list_of_num_layers=[3, 5],
         list_of_num_layers=[4, 4],
         dim_feedforward=2048,
-        attention_masking_type='block',  # None or 'block'
         # both are bidirectional
         attention_bias_type='relative_attention',
         dropout=0.1
@@ -48,9 +47,12 @@ config = {
     ),
 
     # --- Upscaler ---
-    'upscaler_type': None,
-    # 'upscaler_kwargs': dict(),
-
+    'upscaler_type': 'mlp_upscaler',  # mlp_upscaler or None
+    'upscaler_kwargs': dict(
+        output_dim=32,
+        hidden_size=512,
+        dropout=0.1
+    ),
     # ======== AuxiliaryNetworks =====
     'auxiliary_networks_kwargs':   {
         # multiplicative term in front of the quantization loss
