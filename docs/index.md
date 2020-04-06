@@ -49,7 +49,7 @@ Few interesting clusters obtained with different models.
   </tr>
   
   <tr>
-    <td><img class="recimg" src="exemples/test.pdf"></td>
+    <td><img class="recimg" src="exemples/test.png"></td>
     <td style="text-align: center; vertical-align: middle;">
       <audio controls>
       <source src="exemples/test.wav">
