@@ -170,7 +170,8 @@ class Encoder(nn.Module):
             # keep only a limited number of examples
             list_elements = list_elements[:50]
             # to score
-            tensor_score = self.data_processor.postprocess(list_elements)
+            tensor_score = self.data_processor.postprocess(original=None,
+                                                           reconstruction=list_elements)
             dataloader_generator.write(tensor_score, save_path)
 
             #
