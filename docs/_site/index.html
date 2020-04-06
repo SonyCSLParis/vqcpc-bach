@@ -58,16 +58,36 @@
 
 <h1 id="vector-quantized-contrastive-predictive-coding-for-template-based-music">Vector Quantized Contrastive Predictive Coding for Template-based Music</h1>
 
-<p>This repository describes the additional material and experiments around the paper <a href="paper.pdf">“Vector Quantized Contrastive Predictive Coding for Template-based Music
-Generation”</a>.</p>
+<p>This is the companion website of the paper 
+<a href="www.google.com">Vector Quantized Contrastive Predictive Coding for Template-based Music Generation</a>.
+In this paper, we proposed a flexible method for generating variations of discrete sequences 
+in which tokens can be grouped into basic units, like sentences in a text or bars in music.
+More precisely, given a template sequence, we aim at producing novel sequences sharing perceptible similarities 
+with the original template without relying on any annotation.
+We introduce</p>
+<ul>
+  <li>a <em>self-supervised encoding</em> technique, named <em>Vector Quantized Contrastive Predictive Coding</em> (<em>VQCPC</em>), 
+which allows to learn a meaningful assignment of the basic units over a discrete set of codes,
+together with  mechanisms allowing to control the information content of these learnt discrete representations.</li>
+  <li>a <em>decoder</em> architecture which can generate sequences from the compressed representations learned by the encoder.
+In particular, it can be used to generate variations of a template sequence.</li>
+</ul>
 
-<p>ABSTRACT</p>
+<p>Our experiments on the corpus of J.S. Bach chorales can be reproduced using this repository.</p>
 
 <p>Here, we directly embed the exposed elements</p>
 <ul>
+  <li><a href="#clusters">Clustes</a></li>
   <li><a href="#variations-of-a-source-piece">Variations of a source piece</a></li>
   <li><a href="#examples-in-the-paper">Examples in the paper</a></li>
   <li><a href="#code">Code</a></li>
+</ul>
+
+<h2 id="clusters">Clusters</h2>
+<ul>
+  <li>Sounds</li>
+  <li>3D map</li>
+  <li>few words about how the different methods lead to clustering based on different features</li>
 </ul>
 
 <h2 id="variations-of-a-source-piece">Variations of a source piece</h2>
