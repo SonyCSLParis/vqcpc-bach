@@ -181,7 +181,7 @@ def get_encoder(model_dir,
             codebook_dim=quantizer_kwargs['codebook_dim'],
             initialize=quantizer_kwargs['initialize'],
             squared_l2_norm=quantizer_kwargs['squared_l2_norm'],
-            use_batch_norm=False,
+            use_batch_norm=quantizer_kwargs['use_batch_norm'],
             commitment_cost=quantizer_kwargs['commitment_cost']
         )
 
