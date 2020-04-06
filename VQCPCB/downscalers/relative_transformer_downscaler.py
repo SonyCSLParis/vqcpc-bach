@@ -34,6 +34,7 @@ class RelativeTransformerDownscaler(Downscaler):
         positional_embedding_size = 8
         self.num_channels = num_channels
         self.num_events = self.sequence_length // self.num_channels
+        # TODO useless assert?!
         assert self.sequence_length % np.prod(downscale_factors) == 0
 
         self.input_linear = nn.Linear(
