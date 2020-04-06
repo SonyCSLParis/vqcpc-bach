@@ -4,22 +4,7 @@ Léopold Crestel, Sony CSL, Paris, France (leopold.crestel@sony.com)
 
 This is the companion github of the paper 
 [Vector Quantized Contrastive Predictive Coding for Template-based Music Generation](www.google.com).
-In this paper, we proposed a flexible method for generating variations of discrete sequences 
-in which tokens can be grouped into basic units, like sentences in a text or bars in music.
-More precisely, given a template sequence, we aim at producing novel sequences sharing perceptible similarities 
-with the original template without relying on any annotation.
-We introduce 
- - a *self-supervised encoding* technique, named *Vector Quantized Contrastive Predictive Coding* (*VQCPC*), 
-which allows to learn a meaningful assignment of the basic units over a discrete set of codes,
-together with  mechanisms allowing to control the information content of these learnt discrete representations.
-- a *decoder* architecture which can generate sequences from the compressed representations learned by the encoder.
-In particular, it can be used to generate variations of a template sequence.
- 
-Our experiments on the corpus of J.S. Bach chorales can be reproduced using this repository.
-
-** SCHEMA STYLE OU CA ENCODE ET CA DECODE, ON VOIT LE DOWNSAMPLING LOCAL DES TOKEN EN 1 SYMBOL DISCRET,
- ET LE UPSCALING (LOCAL AUSSI) DES CODES VERS UNE SEQUENCE; BÔTé GARANTIE** 
-
+See also [https://sonycslparis.github.io/vqcpc-bach/](https://sonycslparis.github.io/vqcpc-bach/) for observeing our results.
 
 ## Installation
 To install

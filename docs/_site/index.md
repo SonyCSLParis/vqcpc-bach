@@ -15,15 +15,31 @@
 
 # Vector Quantized Contrastive Predictive Coding for Template-based Music
 
-This repository describes the additional material and experiments around the paper ["Vector Quantized Contrastive Predictive Coding for Template-based Music
-Generation"](paper.pdf).
-
-ABSTRACT
+This is the companion website of the paper 
+[Vector Quantized Contrastive Predictive Coding for Template-based Music Generation](www.google.com).
+In this paper, we proposed a flexible method for generating variations of discrete sequences 
+in which tokens can be grouped into basic units, like sentences in a text or bars in music.
+More precisely, given a template sequence, we aim at producing novel sequences sharing perceptible similarities 
+with the original template without relying on any annotation.
+We introduce 
+ - a *self-supervised encoding* technique, named *Vector Quantized Contrastive Predictive Coding* (*VQCPC*), 
+which allows to learn a meaningful assignment of the basic units over a discrete set of codes,
+together with  mechanisms allowing to control the information content of these learnt discrete representations.
+- a *decoder* architecture which can generate sequences from the compressed representations learned by the encoder.
+In particular, it can be used to generate variations of a template sequence.
+ 
+Our experiments on the corpus of J.S. Bach chorales can be reproduced using this repository.
 
 Here, we directly embed the exposed elements
+  * [Clustes](#clusters)
   * [Variations of a source piece](#variations-of-a-source-piece)
   * [Examples in the paper](#examples-in-the-paper)
   * [Code](#code)
+  
+## Clusters
+- Sounds
+- 3D map
+- few words about how the different methods lead to clustering based on different features
   
 ## Variations of a source piece
 <table>
