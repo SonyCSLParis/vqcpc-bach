@@ -31,16 +31,56 @@ In particular, it can be used to generate variations of a template sequence.
 Our experiments on the corpus of J.S. Bach chorales can be reproduced using this repository.
 
 Here, we directly embed the exposed elements
-  * [Clustes](#clusters)
-  * [Variations of a source piece](#variations-of-a-source-piece)
+  * [Clusters](#clusters)
+    * [Random VQCPC](#Random VQCPC)
+    * [Same-sequence VQCPC](#Same-sequence VQCPC)
+    * [Student](#Student)
   * [Examples in the paper](#examples-in-the-paper)
+  * [Variations of a source piece](#variations-of-a-source-piece)
   * [Code](#code)
   
 ## Clusters
-- Sounds
-- 3D map
-- few words about how the different methods lead to clustering based on different features
+Few interesting clusters obtained with different models.
+### Random VQCPC
+<table>
+  <tr>
+    <td style="text-align: center; vertical-align: middle;"><b>Score</b></td>
+    <td style="text-align: center; vertical-align: middle;"><b>Audio Rendering</b></td>
+  </tr>
   
+  <tr>
+    <td><img class="recimg" src="exemples/test.pdf"></td>
+    <td style="text-align: center; vertical-align: middle;">
+      <audio controls>
+      <source src="exemples/test.wav">
+      </audio>
+    </td>
+  </tr>
+  
+  <tr>
+    <td><img class="recimg" src="https://anonymous0505.github.io/VQCPC/figures/..."></td>
+    <td style="text-align: center; vertical-align: middle;">
+      <audio controls>
+      <source src="https://anonymous0505.github.io/VQCPC/sounds/...">
+      </audio>
+    </td>
+  </tr>
+
+  <tr>
+    <td><img class="recimg" src="https://anonymous0505.github.io/VQCPC/figures/..."></td>
+    <td style="text-align: center; vertical-align: middle;">
+      <audio controls>
+      <source src="https://anonymous0505.github.io/VQCPC/sounds/...">
+      </audio>
+    </td>
+  </tr>
+</table>
+
+### Same-sequence
+
+  
+## Examples in the paper
+
 ## Variations of a source piece
 <table>
 <caption><b> Source </b></caption>
@@ -96,6 +136,5 @@ Here, we directly embed the exposed elements
 </table>
 
 
-## Examples in the paper
 
 
