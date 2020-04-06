@@ -37,5 +37,5 @@ class BachDataloaderGenerator(DataloaderGenerator):
         :return: list of music21.Score
         """
         score = self.dataset.tensor_to_score(x.transpose(1, 0))
-        score.write('mid', f'{path}.mid')
+        score.write('xml', f'{path}.xml')
         return score
