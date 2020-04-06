@@ -67,7 +67,7 @@ class BachCPCDataProcessor(DataProcessor):
         x = x.view(*batch_dims, num_tokens_per_block, self.embedding_size)
         return x
 
-    def postprocess(self, list_elements):
-        tensor_score = torch.cat(list_elements, dim=0)
-        tensor_score = to_numpy(tensor_score)
-        return tensor_score
+    # def postprocess(self, list_elements):
+    #     tensor_score = torch.cat(list_elements, dim=0)
+    #     tensor_score = to_numpy(tensor_score)
+    #     return tensor_score

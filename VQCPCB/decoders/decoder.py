@@ -244,8 +244,7 @@ class Decoder(nn.Module):
 
     def init_optimizers(self, lr=1e-3):
         self.optimizer = torch.optim.Adam(
-            list(self.parameters())
-            ,
+            list(self.parameters()),
             lr=lr
         )
 
