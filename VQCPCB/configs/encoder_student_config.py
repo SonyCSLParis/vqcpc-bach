@@ -20,7 +20,7 @@ config = {
         embedding_size=32
     ),
     # --- Downscaler ---
-    'downscaler_type':             'relative_transformer_downscaler',
+    'downscaler_type':             'relative_transformer_downscaler_linear',
     'downscaler_kwargs':           dict(
         # DCPC uses a Transformer
         # downscale_factors=[4, 8],
@@ -47,16 +47,11 @@ config = {
     ),
 
     # --- Upscaler ---
-    'upscaler_type': 'mlp_upscaler',  # mlp_upscaler or None
-    'upscaler_kwargs': dict(
-        output_dim=32,
-        hidden_size=512,
-        dropout=0.1
-    ),
+    'upscaler_type': None,
     # ======== AuxiliaryNetworks =====
     'auxiliary_networks_kwargs':   {
         # multiplicative term in front of the quantization loss
-        'quantization_weighting':   1,
+        'quantization_weighting':   0.1,
         'num_events_masked':        4,
         'teacher_type':             'relative',
         # relative or absolute

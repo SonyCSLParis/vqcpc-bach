@@ -10,6 +10,8 @@ from VQCPCB.dataloaders.bach_dataloader import BachDataloaderGenerator
 from VQCPCB.decoders.decoder import Decoder
 from VQCPCB.downscalers.lstm_downscaler import LstmDownscaler
 from VQCPCB.downscalers.relative_transformer_downscaler import RelativeTransformerDownscaler
+from VQCPCB.downscalers.relative_transformer_downscaler_linear import \
+    RelativeTransformerDownscalerLinear
 from VQCPCB.encoder import Encoder
 from VQCPCB.priors.prior_relative import PriorRelative
 from VQCPCB.quantizer.vector_quantizer import ProductVectorQuantizer, NoQuantization
@@ -47,6 +49,18 @@ def get_downscaler(downscaler_type,
                    downscaler_kwargs):
     if downscaler_type == 'relative_transformer_downscaler':
         return RelativeTransformerDownscaler(
+            input_dim=downscaler_kwargs['input_dim'],
+            output_dim=downscaler_kwargs['output_dim'],
+            downscale_factors=downscaler_kwargs['downscale_factors'],
+            num_channels=downscaler_kwargs['num_channels'],
+            d_model=downscaler_kwargs['d_model'],
+            n_head=downscaler_kwargs['n_head'],
+            list_of_num_layers=downscaler_kwargs['list_of_num_layers'],
+            dim_feedforward=downscaler_kwargs['dim_feedforward'],
+            dropout=downscaler_kwargs['dropout'],
+        )
+    if downscaler_type == 'relative_transformer_downscaler_linear':
+        return RelativeTransformerDownscalerLinear(
             input_dim=downscaler_kwargs['input_dim'],
             output_dim=downscaler_kwargs['output_dim'],
             downscale_factors=downscaler_kwargs['downscale_factors'],
