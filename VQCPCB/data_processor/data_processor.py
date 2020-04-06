@@ -1,7 +1,7 @@
 import torch
 from torch import nn
 
-from VQCPCB.utils import cuda_variable
+from VQCPCB.utils import cuda_variable, to_numpy
 
 
 class DataProcessor(nn.Module):
@@ -84,7 +84,15 @@ class DataProcessor(nn.Module):
         :param x: (batch_size, num_events, num_channels) -> ?
         :return:
         """
-        return reconstruction
+        if original is not None:
+            tensor_score = torch.cat([
+                original.long(),
+                reconstruction.cpu()
+            ], dim=1)
+        else:
+            tensor_score = torch.cat(reconstruction, dim=0)
+        tensor_score = to_numpy(tensor_score)
+        return tensor_score
 
     def dump(self, x):
         """

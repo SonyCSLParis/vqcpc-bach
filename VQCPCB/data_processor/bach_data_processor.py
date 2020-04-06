@@ -10,14 +10,3 @@ class BachDataProcessor(DataProcessor):
                                                 num_events=num_events,
                                                 num_tokens_per_channel=num_tokens_per_channel
                                                 )
-
-    def postprocess(self, original, reconstruction):
-        if original is not None:
-            tensor_score = torch.cat([
-                original.long(),
-                reconstruction.cpu()
-            ], dim=1)
-        else:
-            tensor_score = torch.cat(reconstruction, dim=0)
-        tensor_score = to_numpy(tensor_score)
-        return tensor_score
