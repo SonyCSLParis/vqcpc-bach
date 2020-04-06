@@ -113,7 +113,7 @@ def main(train,
         )
 
     num_examples = 3
-    for _ in num_examples:
+    for _ in range(num_examples):
         scores = decoder.generate(temperature=1.0,
                                   batch_size=3,
                                   plot_attentions=True)
