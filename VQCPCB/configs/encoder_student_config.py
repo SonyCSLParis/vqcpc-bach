@@ -9,7 +9,7 @@ config = {
 
     # ======== Dataloader ======
     'dataloader_generator_kwargs': dict(
-        sequences_size=12
+        sequences_size=24
     ),
     'subdivision':                 subdivision,  # Number of frame per quarter note
 
@@ -90,8 +90,8 @@ config = {
     },
 
     # ======== Training ========
-    'lr': 1e-4,
-    'batch_size': 16,
+    'lr': 1e-5,
+    'batch_size': 8,
     'num_batches': 512,
     'num_epochs': 20000,
     'quantizer_regularization': dict(

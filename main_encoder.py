@@ -46,8 +46,10 @@ def main(train,
         model_dir = os.path.dirname(config_path)
     else:
         model_dir = f'models/{config["savename"]}_{timestamp}'
+
     # Add dynamic parameters to corresponding dicts
     config['quantizer_kwargs']['initialize'] = not load
+    # config['quantizer_kwargs']['initialize'] = True
 
     ######################################################
     # Get model
