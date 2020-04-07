@@ -2,3 +2,4 @@ venv
 .idea
 /data/
 /models/
+/docs/_site/
