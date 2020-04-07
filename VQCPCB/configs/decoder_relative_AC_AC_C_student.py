@@ -18,7 +18,7 @@ config = {
     ),  # Can be different from the encoder's data processor
 
     # --- Decoder ---
-    'decoder_type':                'transformer_relative_diagonal',
+    'decoder_type':                'transformer_relative',
     # 'transformer' = not relative, dumb positional embeddings,
     # 'transformer_relative' = AC //AC // C,
     # 'transformer_relative_full' = F // F // C

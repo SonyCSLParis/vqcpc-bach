@@ -2,7 +2,8 @@
 <script src="http://vjs.zencdn.net/4.0/video.js"></script>
 -->
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML" type="text/javascript"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS
+-MML_HTMLorMML" type="text/javascript"></script>
 
 <script type="text/javascript"> 
       // Show button
@@ -13,7 +14,7 @@
       } 
 </script> 
 
-# Vector Quantized Contrastive Predictive Coding for Template-based Music
+
 
 This is the companion website of the paper 
 [Vector Quantized Contrastive Predictive Coding for Template-based Music Generation](www.google.com).
