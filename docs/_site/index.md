@@ -2,7 +2,8 @@
 <script src="http://vjs.zencdn.net/4.0/video.js"></script>
 -->
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML" type="text/javascript"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS
+-MML_HTMLorMML" type="text/javascript"></script>
 
 <script type="text/javascript"> 
       // Show button
@@ -13,7 +14,7 @@
       } 
 </script> 
 
-# Vector Quantized Contrastive Predictive Coding for Template-based Music
+
 
 This is the companion website of the paper 
 [Vector Quantized Contrastive Predictive Coding for Template-based Music Generation](www.google.com).
@@ -32,7 +33,7 @@ Our experiments on the corpus of J.S. Bach chorales can be reproduced using this
 
 Here, we directly embed the exposed elements
   * [Clusters](#clusters)
-    * [Random VQCPC](#Random VQCPC)
+    * [Random VQCPC](#random-vqcpc)
     * [Same-sequence VQCPC](#Same-sequence VQCPC)
     * [Student](#Student)
   * [Examples in the paper](#examples-in-the-paper)
@@ -41,39 +42,69 @@ Here, we directly embed the exposed elements
   
 ## Clusters
 Few interesting clusters obtained with different models.
-### Random VQCPC
+Actuyally much more elements per clusters, but only the beginning is shown.
+
+### Random-VQCPC
+Preserve tonality as it is the most discriminative features for 
+segments chosen randomly in the whole corpus.
+
 <table>
   <tr>
     <td style="text-align: center; vertical-align: middle;"><b>Score</b></td>
     <td style="text-align: center; vertical-align: middle;"><b>Audio Rendering</b></td>
+    <td style="text-align: center; vertical-align: middle;"><b>#Index: comments</b></td>
   </tr>
   
   <tr>
-    <td><img class="recimg" src="exemples/test.pdf"></td>
+    <td><img class="recimg" src="exemples/clusters/random/0.png"></td>
     <td style="text-align: center; vertical-align: middle;">
       <audio controls>
-      <source src="exemples/test.wav">
+      <source src="exemples/clusters/random/0.wav">
       </audio>
+    </td>
+    <td >
+    #0:
+    </td>
+    
+  </tr>
+  
+  <tr>
+    <td><img class="recimg" src="exemples/clusters/random/1.png"></td>
+    <td style="text-align: center; vertical-align: middle;">
+      <audio controls>
+      <source src="exemples/clusters/random/1.mp3">
+      </audio>
+    </td>
+    <td>
+    #1: Mostly sustained notes in the Soprano
     </td>
   </tr>
   
   <tr>
-    <td><img class="recimg" src="https://anonymous0505.github.io/VQCPC/figures/..."></td>
+    <td><img class="recimg" src="exemples/clusters/random/5.png"></td>
     <td style="text-align: center; vertical-align: middle;">
       <audio controls>
-      <source src="https://anonymous0505.github.io/VQCPC/sounds/...">
+      <source src="exemples/clusters/random/5.mp3">
       </audio>
     </td>
+    <td>
+    #5: 
+    </td>
   </tr>
-
+  
   <tr>
-    <td><img class="recimg" src="https://anonymous0505.github.io/VQCPC/figures/..."></td>
+    <td><img class="recimg" src="exemples/clusters/random/5.png"></td>
     <td style="text-align: center; vertical-align: middle;">
       <audio controls>
-      <source src="https://anonymous0505.github.io/VQCPC/sounds/...">
+      <source src="exemples/clusters/random/5.mp3">
       </audio>
     </td>
+    <td>
+    #13: Soprano register is relatively constrained 
+    </td>
   </tr>
+ 
+  
 </table>
 
 ### Same-sequence
