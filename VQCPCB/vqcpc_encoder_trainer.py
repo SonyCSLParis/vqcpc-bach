@@ -88,7 +88,7 @@ class VQCPCEncoderTrainer(EncoderTrainer):
         if self.c_module_back is not None:
             list_parameters = list_parameters \
                               + list(self.fks_module_back.parameters()) \
-                              + list(self.encoder_back.parameters())
+                              + list(self.c_module_back.parameters())
         self.optimizer = torch.optim.Adam(list_parameters, lr=lr)
 
         # Scheduler
@@ -278,11 +278,12 @@ class VQCPCEncoderTrainer(EncoderTrainer):
                 z_quantized_right_flip = z_quantized_right.flip(dims=[1])
                 c_back = self.c_module_back(z_quantized_right_flip, h=None)
 
-                #  -- Positive fks (no need to flip left zs, first one will just be the farthest and last closest
+                #  -- Positive fks
+                # DO NOT FLIP LEFT Zs as they were not flipped to construct the negatives samples
                 fks_positive_back = self.fks_module_back(c_back, z_quantized_left)
 
                 c_repeat_back = c_back.repeat(num_negative_samples, 1)
-                fks_negative_back = self.fks_modules_back(c_repeat_back, z_quantized_negative_back)
+                fks_negative_back = self.fks_module_back(c_repeat_back, z_quantized_negative_back)
 
                 fks_negative_back = fks_negative_back.view(num_negative_samples,
                                                            batch_size,
@@ -298,10 +299,10 @@ class VQCPCEncoderTrainer(EncoderTrainer):
                 quantization_loss_negative_back = None
             ############################################################
 
-            q_loss = quantization_loss(quantization_loss_left,
-                                       quantization_loss_negative,
-                                       quantization_loss_right,
-                                       quantization_loss_negative_back)
+            q_loss = quantization_loss(loss_quantization_left=quantization_loss_left,
+                                       loss_quantization_negative=quantization_loss_negative,
+                                       loss_quantization_right=quantization_loss_right,
+                                       loss_quantization_negative_back=quantization_loss_negative_back)
 
             loss = contrastive_loss + self.quantization_weighting * q_loss
 

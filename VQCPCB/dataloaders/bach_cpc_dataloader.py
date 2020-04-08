@@ -142,7 +142,7 @@ class BachCPCDataloaderGenerator(CPCDataloaderGenerator):
                 x = {
                     'x_left': x_left.transpose(1, 2),
                     'x_right': x_right.transpose(1, 2),
-                    'negative_samples': negative_sample.transpose(3, 4)
+                    'negative_samples': negative_sample.transpose(3, 4),
                     'negative_samples_back': negative_sample_back.transpose(3, 4)
                 }
 
@@ -207,15 +207,31 @@ class BachCPCDataloaderGenerator(CPCDataloaderGenerator):
             indexed_dataloaders=False
         )
 
+        # Negative dataset
+        negative_dataloaders_backward = self.dataset_negative.data_loaders(
+            batch_size=batch_size * self.num_negative_samples * self.num_blocks_right,
+            num_workers=num_workers,
+            indexed_dataloaders=False
+        )
+
         # Generate dataloaders
         def _aggregate_dataloader(dataloader_positive,
-                                  dataloader_negative):
-            for p, n in zip(dataloader_positive, dataloader_negative):
+                                  dataloader_negative,
+                                  negative_dataloaders_backward):
+            for p, n, n_back in zip(dataloader_positive, dataloader_negative, negative_dataloaders_backward):
                 # remove metadata
                 negative_sample = n[0]
+                negative_sample_back = n_back[0]
                 p = p[0]
                 assert negative_sample.size(2) == self.num_tokens_per_block // num_voices
                 negative_sample = negative_sample.view(
+                    batch_size,
+                    self.num_negative_samples,
+                    self.num_blocks_right,
+                    num_voices,
+                    self.num_tokens_per_block // num_voices
+                )
+                negative_sample_back = negative_sample_back.view(
                     batch_size,
                     self.num_negative_samples,
                     self.num_blocks_right,
@@ -230,15 +246,15 @@ class BachCPCDataloaderGenerator(CPCDataloaderGenerator):
                     'x_left': x_left.transpose(1, 2),
                     'x_right': x_right.transpose(1, 2),
                     'negative_samples': negative_sample.transpose(3, 4),
-                    'negative_samples_back': negative_sample.transpose(3, 4)
+                    'negative_samples_back': negative_sample_back.transpose(3, 4)
                 }
 
                 yield x
 
         dataloaders = [
-            _aggregate_dataloader(dataloader_positive, dataloader_negative)
-            for dataloader_positive, dataloader_negative
-            in zip(positive_dataloaders, negative_dataloaders)
+            _aggregate_dataloader(dataloader_positive, dataloader_negative, dataloader_negative_backward)
+            for dataloader_positive, dataloader_negative, dataloader_negative_backward
+            in zip(positive_dataloaders, negative_dataloaders, negative_dataloaders_backward)
         ]
 
         return dataloaders
