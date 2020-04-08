@@ -2,7 +2,7 @@ from pathlib import Path
 
 
 config = {
-    'config_encoder':              'models/encoder_student_config_2020-04-06_18-01-32/config.py',
+    'config_encoder':              'models/encoder_random_config_2020-03-31_12-52-30/config.py',
     'training_method':             'decoder',
     'dataset':                     'bach',
 

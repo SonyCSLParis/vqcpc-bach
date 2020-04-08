@@ -108,6 +108,7 @@ def main(train,
             num_batches=config['num_batches'],
             num_epochs=config['num_epochs'],
             lr=config['lr'],
+            schedule_lr=config['schedule_lr'],
             plot=True,
             num_workers=num_workers
         )

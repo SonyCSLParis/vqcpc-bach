@@ -249,10 +249,11 @@ class EncoderTrainer(nn.Module):
 
     def train_model(self,
                     batch_size,
-                    num_batches=None,
-                    num_epochs=10,
-                    lr=1e-3,
-                    corrupt_labels=False,
+                    num_batches,
+                    num_epochs,
+                    lr,
+                    corrupt_labels,
+                    schedule_lr,
                     plot=False,
                     num_workers=0,
                     **kwargs
@@ -262,7 +263,7 @@ class EncoderTrainer(nn.Module):
             self.writer = SummaryWriter(f'{self.model_dir}')
 
         best_val = 1e8
-        self.init_optimizers(lr=lr)
+        self.init_optimizers(lr=lr, schedule_lr=schedule_lr)
         for epoch_id in range(num_epochs):
             (generator_train,
              generator_val,
