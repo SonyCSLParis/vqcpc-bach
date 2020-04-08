@@ -15,8 +15,10 @@ from VQCPCB.dataloaders.dataloader_generator import DataloaderGenerator
 from VQCPCB.datasets.helpers import PAD_SYMBOL, START_SYMBOL, END_SYMBOL
 from VQCPCB.transformer.transformer_custom import TransformerCustom, TransformerDecoderCustom, \
     TransformerEncoderCustom, \
-    TransformerDecoderLayerCustom, TransformerEncoderLayerCustom, TransformerAlignedDecoderLayerCustom
-from VQCPCB.utils import cuda_variable, categorical_crossentropy, flatten, dict_pretty_print, top_k_top_p_filtering, \
+    TransformerDecoderLayerCustom, TransformerEncoderLayerCustom, \
+    TransformerAlignedDecoderLayerCustom
+from VQCPCB.utils import cuda_variable, categorical_crossentropy, flatten, dict_pretty_print, \
+    top_k_top_p_filtering, \
     to_numpy
 
 
@@ -86,7 +88,8 @@ class Decoder(nn.Module):
         ######################################################
         # Embeddings
         if transformer_type == 'absolute':
-            num_tokens_source = self.num_tokens_target // np.prod(self.encoder.downscaler.downscale_factors)
+            num_tokens_source = self.num_tokens_target // np.prod(
+                self.encoder.downscaler.downscale_factors)
             self.source_positional_embeddings = nn.Parameter(
                 torch.randn((1,
                              num_tokens_source,
@@ -516,9 +519,9 @@ class Decoder(nn.Module):
 
         loss = loss.mean()
         return {
-            'loss': loss,
-            'attentions_decoder': attentions_decoder,
-            'attentions_encoder': attentions_encoder,
+            'loss':                 loss,
+            'attentions_decoder':   attentions_decoder,
+            'attentions_encoder':   attentions_encoder,
             'weights_per_category': weights_per_category,
             'monitored_quantities': {
                 'loss': loss.item()
@@ -532,7 +535,12 @@ class Decoder(nn.Module):
         for k, v in monitored_quantities_val.items():
             self.writer.add_scalar(f'{k}/val', v, epoch_id)
 
-    def generate(self, temperature, batch_size=1, plot_attentions=False):
+    def generate(self, temperature,
+                 batch_size=1,
+                 top_k=0,
+                 top_p=1.,
+                 exclude_meta_symbols=False,
+                 plot_attentions=False):
         self.eval()
         (generator_train, generator_val, _) = self.dataloader_generator.dataloaders(
             batch_size=1,
@@ -540,8 +548,8 @@ class Decoder(nn.Module):
         )
 
         with torch.no_grad():
-            tensor_dict = next(iter(generator_val))
-            # tensor_dict = next(iter(generator_train))
+            # tensor_dict = next(iter(generator_val))
+            tensor_dict = next(iter(generator_train))
 
             x_original_single = tensor_dict['x']
             x_original = x_original_single.repeat(batch_size, 1, 1)
@@ -570,13 +578,16 @@ class Decoder(nn.Module):
                     # Keep only the last token predictions of the first batch item (batch size 1), apply a
                     # temperature coefficient and filter
                     logits = weights[:, event_index, :] / temperature
+
                     # Remove meta symbols
-                    for sym in [START_SYMBOL, END_SYMBOL, PAD_SYMBOL]:
-                        sym_index = self.dataloader_generator.dataset.note2index_dicts[channel_index][sym]
-                        logits[:, sym_index] = -float("inf")
+                    if exclude_meta_symbols:
+                        for sym in [START_SYMBOL, END_SYMBOL, PAD_SYMBOL]:
+                            sym_index = \
+                                self.dataloader_generator.dataset.note2index_dicts[channel_index][
+                                    sym]
+                            logits[:, sym_index] = -float("inf")
+
                     # Top-p sampling
-                    top_k = 0
-                    top_p = 0.9
                     filtered_logits = []
                     for logit in logits:
                         filter_logit = top_k_top_p_filtering(logit, top_k=top_k, top_p=top_p)
@@ -595,7 +606,8 @@ class Decoder(nn.Module):
                     # store attentions
                     if plot_attentions:
                         layer = 2
-                        event_index_encoder = (event_index * self.num_channels) // self.total_upscaling
+                        event_index_encoder = (
+                                                      event_index * self.num_channels) // self.total_upscaling
                         attentions_encoder = forward_pass['attentions_encoder']
                         # list of dicts with key 'a_self_encoder'
                         attentions_decoder = forward_pass['attentions_decoder']
@@ -664,9 +676,17 @@ class Decoder(nn.Module):
             torch.zeros(1, num_events, self.num_channels).long()
         )
 
-    def generate_from_code_long(self, encoding_indices, temperature,
-                                num_decodings=1, code_index_start=None,
+    def generate_from_code_long(self, encoding_indices,
+                                temperature,
+                                top_k=0,
+                                top_p=1.,
+                                exclude_meta_symbols=False,
+                                num_decodings=1,
+                                code_index_start=None,
                                 code_index_end=None):
+        """
+        Returns a list of music21 scores
+        """
         self.eval()
         size_encoding = encoding_indices.size(1)
 
@@ -685,8 +705,6 @@ class Decoder(nn.Module):
             code_index_end = size_encoding
 
         with torch.no_grad():
-            # TODO must be fixed for other datasets
-            # chorale = self.init_generation(num_events=num_events_full_chorale)
             chorale = self.init_generation_chorale(num_events=num_events_full_chorale,
                                                    start_index=num_events_before_start)
             # Duplicate along batch dimension
@@ -704,21 +722,25 @@ class Decoder(nn.Module):
                         input_encoding_indices = encoding_indices[:, t_begin:t_end]
 
                         input_chorale = chorale[:,
-                            t_begin * self.num_events_per_code: t_end * self.num_events_per_code, :]
+                                        t_begin * self.num_events_per_code: t_end * self.num_events_per_code,
+                                        :]
                         weights_per_voice = self.forward(input_encoding_indices,
                                                          input_chorale)['weights_per_category']
 
                         # Keep only the last token predictions of the first batch item (batch size 1), apply a
                         # temperature coefficient and filter
                         weights = weights_per_voice[channel_index]
-                        logits = weights[:, t_relative * self.num_events_per_code + relative_event, :] / temperature
+                        logits = weights[:, t_relative * self.num_events_per_code + relative_event,
+                                 :] / temperature
                         # Remove meta symbols
-                        for sym in [START_SYMBOL, END_SYMBOL, PAD_SYMBOL]:
-                            sym_index = self.dataloader_generator.dataset.note2index_dicts[channel_index][sym]
-                            logits[:, sym_index] = -float("inf")
+                        if exclude_meta_symbols:
+                            for sym in [START_SYMBOL, END_SYMBOL, PAD_SYMBOL]:
+                                sym_index = \
+                                    self.dataloader_generator.dataset.note2index_dicts[
+                                        channel_index][
+                                        sym]
+                                logits[:, sym_index] = -float("inf")
                         # Top-p sampling
-                        top_k = 0
-                        top_p = 0.9
                         filtered_logits = []
                         for logit in logits:
                             filter_logit = top_k_top_p_filtering(logit, top_k=top_k, top_p=top_p)
@@ -747,10 +769,12 @@ class Decoder(nn.Module):
 
         # slice
         chorale = chorale[:, num_events_before_start:num_events_before_end]
-        tensor_score = self.data_processor.postprocess(original=None,
-                                                       reconstruction=chorale)
-        #  ToDo define path
-        scores = self.dataloader_generator.write(tensor_score, path)
+        tensor_scores = self.data_processor.postprocess(original=None,
+                                                        reconstruction=chorale)
+        # Write scores
+        scores = []
+        for k, tensor_score in enumerate(tensor_scores):
+            scores.append(self.dataloader_generator.to_score(tensor_score))
         return scores
 
     def compute_start_end_times(self, t, num_blocks, num_blocks_model):
@@ -778,7 +802,10 @@ class Decoder(nn.Module):
 
         return t_begin, t_end, t_relative
 
-    def generate_reharmonisation(self, num_reharmonisations, temperature):
+    def generate_reharmonisation(self, num_reharmonisations,
+                                 temperature,
+                                 top_k,
+                                 top_p):
         """
         This method only works on bach chorales
         :param num_reharmonisations:
@@ -847,6 +874,8 @@ class Decoder(nn.Module):
             scores = self.generate_from_code_long(encoding_indices,
                                                   num_decodings=num_reharmonisations,
                                                   temperature=temperature,
+                                                  top_k=top_k,
+                                                  top_p=top_p,
                                                   code_index_start=code_index_start,
                                                   code_index_end=code_index_end
                                                   )
@@ -959,6 +988,7 @@ class Decoder(nn.Module):
         START = [d[START_SYMBOL] for d in self.dataloader_generator.dataset.note2index_dicts]
         aa = torch.Tensor(PAD).unsqueeze(0).unsqueeze(0).repeat(1, start_index - 1, 1).long()
         bb = torch.Tensor(START).unsqueeze(0).unsqueeze(0).long()
-        cc = torch.Tensor(PAD).unsqueeze(0).unsqueeze(0).repeat(1, num_events - start_index, 1).long()
+        cc = torch.Tensor(PAD).unsqueeze(0).unsqueeze(0).repeat(1, num_events - start_index,
+                                                                1).long()
         init_sequence = torch.cat([aa, bb, cc], 1)
         return init_sequence
