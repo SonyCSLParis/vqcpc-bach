@@ -39,3 +39,7 @@ class BachDataloaderGenerator(DataloaderGenerator):
         score = self.dataset.tensor_to_score(x.transpose(1, 0))
         score.write('xml', f'{path}.xml')
         return score
+
+    def to_score(self, x):
+        score = self.dataset.tensor_to_score(x.transpose(1, 0))
+        return score
