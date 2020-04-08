@@ -137,32 +137,13 @@ class BachCPCDataloaderGenerator(CPCDataloaderGenerator):
                 x_right = p[:, :, num_tokens_left // num_voices:]
 
                 # generate negative samples
-                negative_sample = []
-                for k in range(self.num_blocks_right):
-                    x_right_split = x_right.unsqueeze(1).split(self.num_tokens_per_block //
-                                                               num_voices,
-                                                               dim=3)
-                    neg_k = torch.cat(
-                        (*x_left.unsqueeze(1).split(self.num_tokens_per_block // num_voices, dim=3),
-                         *x_right_split[:k],
-                         *x_right_split[k + 1:]),
-                        dim=1
-                    ).unsqueeze(2)
-                    negative_sample.append(neg_k)
-                negative_sample = torch.cat(negative_sample, dim=2)
-
-                negative_sample = negative_sample.view(
-                    batch_size,
-                    num_negative_samples,
-                    self.num_blocks_right,
-                    num_voices,
-                    self.num_tokens_per_block // num_voices
-                )
-
+                negative_sample = self._build_negatives_sameSeq(x_left, x_right, batch_size, num_negative_samples)
+                negative_sample_back = self._build_negatives_sameSeq(x_right, x_left, batch_size, num_negative_samples)
                 x = {
                     'x_left': x_left.transpose(1, 2),
                     'x_right': x_right.transpose(1, 2),
                     'negative_samples': negative_sample.transpose(3, 4)
+                    'negative_samples_back': negative_sample_back.transpose(3, 4)
                 }
 
                 yield x
@@ -174,6 +155,30 @@ class BachCPCDataloaderGenerator(CPCDataloaderGenerator):
         ]
 
         return dataloaders
+
+    def _build_negatives_sameSeq(self, x_left, x_right, batch_size, num_negative_samples):
+        negative_sample = []
+        for k in range(self.num_blocks_right):
+            x_right_split = x_right.unsqueeze(1).split(self.num_tokens_per_block //
+                                                       num_voices,
+                                                       dim=3)
+            neg_k = torch.cat(
+                (*x_left.unsqueeze(1).split(self.num_tokens_per_block // num_voices, dim=3),
+                 *x_right_split[:k],
+                 *x_right_split[k + 1:]),
+                dim=1
+            ).unsqueeze(2)
+            negative_sample.append(neg_k)
+        negative_sample = torch.cat(negative_sample, dim=2)
+
+        negative_sample = negative_sample.view(
+            batch_size,
+            num_negative_samples,
+            self.num_blocks_right,
+            num_voices,
+            self.num_tokens_per_block // num_voices
+        )
+        return negative_sample
 
     def _dataloader_random(self, batch_size, num_workers):
         """
@@ -224,7 +229,8 @@ class BachCPCDataloaderGenerator(CPCDataloaderGenerator):
                 x = {
                     'x_left': x_left.transpose(1, 2),
                     'x_right': x_right.transpose(1, 2),
-                    'negative_samples': negative_sample.transpose(3, 4)
+                    'negative_samples': negative_sample.transpose(3, 4),
+                    'negative_samples_back': negative_sample.transpose(3, 4)
                 }
 
                 yield x

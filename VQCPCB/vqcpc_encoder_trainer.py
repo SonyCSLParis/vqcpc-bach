@@ -59,6 +59,22 @@ class VQCPCEncoderTrainer(EncoderTrainer):
                                                  k_max=self.dataloader_generator.num_blocks_right,
                                                  )
 
+        if c_net_kwargs['bidirectional']:
+            self.c_module_back = vqcpc_helper.CModule(
+                input_dim=z_dim,
+                hidden_size=c_net_kwargs['hidden_size'],
+                output_dim=c_dim,
+                num_layers=c_net_kwargs['num_layers'],
+                dropout=c_net_kwargs['dropout']
+            )
+
+            self.fks_module_back = vqcpc_helper.FksModule(z_dim=z_dim,
+                                                          c_dim=c_dim,
+                                                          k_max=self.dataloader_generator.num_blocks_right,
+                                                          )
+        else:
+            self.c_module_back = None
+
         # optim
         self.quantization_weighting = quantization_weighting
         self.optimizer = None
@@ -66,12 +82,14 @@ class VQCPCEncoderTrainer(EncoderTrainer):
 
     def init_optimizers(self, lr, schedule_lr):
         # Optimizer
-        self.optimizer = torch.optim.Adam(
-            list(self.c_module.parameters()) +
-            list(self.fks_module.parameters()) +
-            list(self.encoder.parameters()),
-            lr=lr
-        )
+        list_parameters = list(self.c_module.parameters()) \
+                          + list(self.fks_module.parameters()) \
+                          + list(self.encoder.parameters())
+        if self.c_module_back is not None:
+            list_parameters = list_parameters \
+                              + list(self.fks_module_back.parameters()) \
+                              + list(self.encoder_back.parameters())
+        self.optimizer = torch.optim.Adam(list_parameters, lr=lr)
 
         # Scheduler
         if schedule_lr:
@@ -92,6 +110,9 @@ class VQCPCEncoderTrainer(EncoderTrainer):
         self.encoder.to(device)
         self.c_module.to(device)
         self.fks_module.to(device)
+        if self.c_module_back is not None:
+            self.c_module_back.to(device)
+            self.fks_module_back.to(device)
 
     def save(self, early_stopped):
         if early_stopped:
@@ -105,7 +126,9 @@ class VQCPCEncoderTrainer(EncoderTrainer):
         self.encoder.save(early_stopped=early_stopped)
         torch.save(self.c_module.state_dict(), f'{model_dir}/c_module')
         torch.save(self.fks_module.state_dict(), f'{model_dir}/fks_module')
-        # print(f'Model {self.__repr__()} saved')
+        if self.c_module_back is not None:
+            torch.save(self.c_module_state.state_dict(), f'{model_dir}/c_module_back')
+            torch.save(self.fks_module_state.state_dict(), f'{model_dir}/fks_module_back')
 
     def load(self, early_stopped, device):
         print(f'Loading models {self.__repr__()}')
@@ -121,16 +144,27 @@ class VQCPCEncoderTrainer(EncoderTrainer):
         self.encoder.load(early_stopped=early_stopped, device=device)
         self.c_module.load_state_dict(torch.load(f'{model_dir}/c_module', map_location=torch.device(device)))
         self.fks_module.load_state_dict(torch.load(f'{model_dir}/fks_module', map_location=torch.device(device)))
+        if self.c_module_back is not None:
+            self.c_module_back.load_state_dict(
+                torch.load(f'{model_dir}/c_module_back', map_location=torch.device(device)))
+            self.fks_module_back.load_state_dict(
+                torch.load(f'{model_dir}/fks_module_back', map_location=torch.device(device)))
 
     def train(self):
         self.encoder.train()
         self.c_module.train()
         self.fks_module.train()
+        if self.c_module_back is not None:
+            self.c_module_back.train()
+            self.fks_module_back.train()
 
     def eval(self):
         self.encoder.eval()
         self.c_module.eval()
         self.fks_module.eval()
+        if self.c_module_back is not None:
+            self.c_module_back.eval()
+            self.fks_module_back.eval()
 
     def epoch(self,
               data_loader,
@@ -157,8 +191,9 @@ class VQCPCEncoderTrainer(EncoderTrainer):
 
         for sample_id, tensor_dict in tqdm(enumerate(islice(data_loader,
                                                             num_batches))):
-
-            # downscale and quantize (preprocessing and embedding are included in these steps)
+            ############################################################
+            # ENCODE (downscale and quantize)
+            # negatives
             negative_samples = tensor_dict['negative_samples']
             batch_size, num_negative_samples, fks_dim, num_events, num_channels = negative_samples.shape
             negative_samples = negative_samples.view(batch_size * num_negative_samples * fks_dim, num_events,
@@ -171,14 +206,33 @@ class VQCPCEncoderTrainer(EncoderTrainer):
             if encoding_indices_negative is not None:
                 encoding_indices_negative = encoding_indices_negative.view(batch_size, num_negative_samples, fks_dim,
                                                                            num_blocks)
-
             quantization_loss_negative = quantization_loss_negative.view(batch_size, num_negative_samples, fks_dim,
                                                                          num_blocks)
-
+            if self.c_module_back is not None:
+                negative_samples_back = tensor_dict['negative_samples_back']
+                negative_samples_back = negative_samples_back.view(batch_size * num_negative_samples * fks_dim,
+                                                                   num_events, num_channels)
+                z_quantized_negative_back, encoding_indices_negative_back, quantization_loss_negative_back = \
+                    self.encoder(negative_samples_back, corrupt_labels=corrupt_labels)
+                z_quantized_negative_back = z_quantized_negative_back.view(batch_size, num_negative_samples, fks_dim,
+                                                                           num_blocks, dim_z)
+                if encoding_indices_negative_back is not None:
+                    encoding_indices_negative_back = encoding_indices_negative_back.view(batch_size,
+                                                                                         num_negative_samples,
+                                                                                         fks_dim,
+                                                                                         num_blocks)
+                quantization_loss_negative_back = quantization_loss_negative_back.view(batch_size, num_negative_samples,
+                                                                                       fks_dim, num_blocks)
+            # left positives
             z_quantized_left, encoding_indices_left, quantization_loss_left = self.encoder(tensor_dict['x_left'],
                                                                                            corrupt_labels=False)
+            # right positives
             z_quantized_right, encoding_indices_right, quantization_loss_right = self.encoder(tensor_dict['x_right'],
                                                                                               corrupt_labels=False)
+            ############################################################
+
+            ############################################################
+            #  COMPUTE FORWARD PREDICTIONS
             # -- compute c
             c = self.c_module(z_quantized_left, h=None)
 
@@ -213,15 +267,41 @@ class VQCPCEncoderTrainer(EncoderTrainer):
 
             # -- compute score:
             score_matrix = fks_positive > fks_negative.max(2)[0]
-            #########################
 
-            # == Compute loss
             # -- contrastive loss
             contrastive_loss = nce_loss(fks_positive, fks_negative)
+            ############################################################
+
+            ############################################################
+            #  fks backward
+            if self.c_module_back is not None:
+                z_quantized_right_flip = z_quantized_right.flip(dims=[1])
+                c_back = self.c_module_back(z_quantized_right_flip, h=None)
+
+                #  -- Positive fks (no need to flip left zs, first one will just be the farthest and last closest
+                fks_positive_back = self.fks_module_back(c_back, z_quantized_left)
+
+                c_repeat_back = c_back.repeat(num_negative_samples, 1)
+                fks_negative_back = self.fks_modules_back(c_repeat_back, z_quantized_negative_back)
+
+                fks_negative_back = fks_negative_back.view(num_negative_samples,
+                                                           batch_size,
+                                                           num_blocks_right
+                                                           ).contiguous().permute(1, 2, 0)
+                # -- compute score:
+                score_matrix_back = fks_positive_back > fks_negative_back.max(2)[0]
+
+                # -- contrastive loss
+                contrastive_loss = contrastive_loss + nce_loss(fks_positive_back, fks_negative_back)
+            else:
+                score_matrix_back = None
+                quantization_loss_negative_back = None
+            ############################################################
 
             q_loss = quantization_loss(quantization_loss_left,
                                        quantization_loss_negative,
-                                       quantization_loss_right)
+                                       quantization_loss_right,
+                                       quantization_loss_negative_back)
 
             loss = contrastive_loss + self.quantization_weighting * q_loss
 
@@ -254,6 +334,8 @@ class VQCPCEncoderTrainer(EncoderTrainer):
             del loss
 
             accuracy = score_matrix.sum(dim=0).float() / batch_size
+            if score_matrix_back is not None:
+                accuracy = (accuracy + score_matrix_back.sum(dim=0).float() / batch_size) / 2
             means['accuracy'] += accuracy.detach().cpu().numpy()
             del accuracy
 
