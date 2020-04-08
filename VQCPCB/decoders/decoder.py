@@ -231,6 +231,7 @@ class Decoder(nn.Module):
         ######################################################
         # optim
         self.optimizer = None
+        self.scheduler = None
 
     def __repr__(self):
         name_mappings = dict(
@@ -242,11 +243,26 @@ class Decoder(nn.Module):
         return f'Decoder-{self.transformer_type}-{name_mappings[self.encoder_attention_type]}-' \
                f'{name_mappings[self.cross_attention_type]}'
 
-    def init_optimizers(self, lr=1e-3):
+    def init_optimizers(self, lr, schedule_lr):
+        # Optimizer
         self.optimizer = torch.optim.Adam(
             list(self.parameters()),
             lr=lr
         )
+        # Scheduler
+        if schedule_lr:
+            warmup_steps = 10000
+            # lr will evolved between min_scaling * lr and max_scaling *lr (up and down more slowly)
+            min_scaling = 0.1
+            max_scaling = 1
+            slope_1 = (max_scaling - min_scaling) / warmup_steps
+            slope_2 = - slope_1 * 0.1
+            lr_schedule = \
+                lambda epoch: max(min(min_scaling + slope_1 * epoch,
+                                      max_scaling + (epoch - warmup_steps) * slope_2),
+                                  min_scaling
+                                  )
+            self.scheduler = torch.optim.lr_scheduler.LambdaLR(self.optimizer, lr_lambda=lr_schedule)
 
     def save(self, early_stopped):
         # This saves also the encoder
@@ -254,12 +270,9 @@ class Decoder(nn.Module):
             model_dir = f'{self.model_dir}/early_stopped'
         else:
             model_dir = f'{self.model_dir}/overfitted'
-
         if not os.path.exists(model_dir):
             os.makedirs(model_dir)
-
         torch.save(self.state_dict(), f'{model_dir}/decoder')
-        # print(f'Model {self.__repr__()} saved')
 
     def load(self, early_stopped, device):
         print(f'Loading models {self.__repr__()}')
@@ -314,6 +327,8 @@ class Decoder(nn.Module):
                 loss.backward()
                 torch.nn.utils.clip_grad_norm_(self.parameters(), 5)
                 self.optimizer.step()
+            if train and (self.scheduler is not None):
+                self.scheduler.step()
 
             # Monitored quantities
             monitored_quantities = forward_pass['monitored_quantities']
@@ -338,9 +353,10 @@ class Decoder(nn.Module):
 
     def train_model(self,
                     batch_size,
-                    num_batches=None,
-                    num_epochs=10,
-                    lr=1e-3,
+                    num_batches,
+                    num_epochs,
+                    lr,
+                    schedule_lr,
                     plot=False,
                     num_workers=0,
                     **kwargs
@@ -352,7 +368,7 @@ class Decoder(nn.Module):
             self.writer = SummaryWriter(f'{self.model_dir}')
 
         best_val = 1e8
-        self.init_optimizers(lr=lr)
+        self.init_optimizers(lr=lr, schedule_lr=schedule_lr)
         for epoch_id in range(num_epochs):
             (generator_train,
              generator_val,
@@ -375,7 +391,6 @@ class Decoder(nn.Module):
             del generator_val
 
             valid_loss = monitored_quantities_val['loss']
-            # self.scheduler.step(monitored_quantities_val["loss"])
 
             print(f'======= Epoch {epoch_id} =======')
             print(f'---Train---')

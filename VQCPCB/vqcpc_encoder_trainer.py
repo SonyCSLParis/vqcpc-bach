@@ -64,13 +64,29 @@ class VQCPCEncoderTrainer(EncoderTrainer):
         self.optimizer = None
         self.scheduler = None
 
-    def init_optimizers(self, lr=1e-3):
+    def init_optimizers(self, lr, schedule_lr):
+        # Optimizer
         self.optimizer = torch.optim.Adam(
             list(self.c_module.parameters()) +
             list(self.fks_module.parameters()) +
             list(self.encoder.parameters()),
             lr=lr
         )
+
+        # Scheduler
+        if schedule_lr:
+            warmup_steps = 10000
+            # lr will evolved between min_scaling * lr and max_scaling *lr (up and down more slowly)
+            min_scaling = 0.1
+            max_scaling = 1
+            slope_1 = (max_scaling - min_scaling) / warmup_steps
+            slope_2 = - slope_1 * 0.1
+            lr_schedule = \
+                lambda epoch: max(min(min_scaling + slope_1 * epoch,
+                                      max_scaling + (epoch - warmup_steps) * slope_2),
+                                  min_scaling
+                                  )
+            self.scheduler = torch.optim.lr_scheduler.LambdaLR(self.optimizer, lr_lambda=lr_schedule)
 
     def to(self, device):
         self.encoder.to(device)
@@ -215,6 +231,8 @@ class VQCPCEncoderTrainer(EncoderTrainer):
                 loss.backward()
                 nn.utils.clip_grad_value_(self.parameters(), clip_value=5)
                 self.optimizer.step()
+            if train and (self.scheduler is not None):
+                self.scheduler.step()
             #########################
 
             # Monitored quantities and clean

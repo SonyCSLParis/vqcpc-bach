@@ -44,10 +44,12 @@ class StudentEncoderTrainer(EncoderTrainer):
         self.quantization_weighting = quantization_weighting
 
         # optim
-        self.optimizer = None
-        self.scheduler = None
+        self.optimizer_enc_dec = None
+        self.optimizer_teacher = None
+        self.scheduler_enc_dec = None
+        self.scheduler_teacher = None
 
-    def init_optimizers(self, lr=1e-3):
+    def init_optimizers(self, lr, schedule_lr):
         self.optimizer_enc_dec = torch.optim.Adam(
             list(self.auxiliary_decoder.parameters()) +
             list(self.encoder.parameters()),
@@ -58,6 +60,22 @@ class StudentEncoderTrainer(EncoderTrainer):
             self.teacher.parameters(),
             lr=lr
         )
+
+        # Scheduler
+        if schedule_lr:
+            warmup_steps = 10000
+            # lr will evolved between min_scaling * lr and max_scaling *lr (up and down more slowly)
+            min_scaling = 0.1
+            max_scaling = 1
+            slope_1 = (max_scaling - min_scaling) / warmup_steps
+            slope_2 = - slope_1 * 0.1
+            lr_schedule = \
+                lambda epoch: max(min(min_scaling + slope_1 * epoch,
+                                      max_scaling + (epoch - warmup_steps) * slope_2),
+                                  min_scaling
+                                  )
+            self.scheduler_enc_dec = torch.optim.lr_scheduler.LambdaLR(self.optimizer_enc_dec, lr_lambda=lr_schedule)
+            self.scheduler_teacher = torch.optim.lr_scheduler.LambdaLR(self.optimizer_teacher, lr_lambda=lr_schedule)
 
     def to(self, device):
         self.auxiliary_decoder.to(device)
@@ -232,6 +250,9 @@ class StudentEncoderTrainer(EncoderTrainer):
                 loss_teacher.backward()
                 torch.nn.utils.clip_grad_norm_(self.teacher.parameters(), 5)
                 self.optimizer_teacher.step()
+            if train and (self.scheduler_teacher is not None):
+                self.scheduler_teacher.step()
+
 
             # ========Train encoder-decoder =============
             self.optimizer_enc_dec.zero_grad()
@@ -247,6 +268,8 @@ class StudentEncoderTrainer(EncoderTrainer):
                 torch.nn.utils.clip_grad_norm_(self.auxiliary_decoder.parameters(), 5)
                 torch.nn.utils.clip_grad_norm_(self.encoder.parameters(), 5)
                 self.optimizer_enc_dec.step()
+            if train and (self.scheduler_enc_dec is not None):
+                self.scheduler_enc_dec.step()
 
             # Monitored quantities
             monitored_quantities = dict(forward_pass_teacher['monitored_quantities'],
