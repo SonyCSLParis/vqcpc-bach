@@ -55,7 +55,7 @@ segments chosen randomly in the whole corpus.
   </tr>
   
   <tr>
-    <td><img class="recimg" src="exemples/clusters/random/0.png"></td>
+    <td><img class="recimg" src="exemples/clusters/random/test.gif"></td>
     <td style="text-align: center; vertical-align: middle;">
       <audio controls>
       <source src="exemples/clusters/random/0.wav">
