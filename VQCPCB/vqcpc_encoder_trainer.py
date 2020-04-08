@@ -127,8 +127,8 @@ class VQCPCEncoderTrainer(EncoderTrainer):
         torch.save(self.c_module.state_dict(), f'{model_dir}/c_module')
         torch.save(self.fks_module.state_dict(), f'{model_dir}/fks_module')
         if self.c_module_back is not None:
-            torch.save(self.c_module_state.state_dict(), f'{model_dir}/c_module_back')
-            torch.save(self.fks_module_state.state_dict(), f'{model_dir}/fks_module_back')
+            torch.save(self.c_module_back.state_dict(), f'{model_dir}/c_module_back')
+            torch.save(self.fks_module_back.state_dict(), f'{model_dir}/fks_module_back')
 
     def load(self, early_stopped, device):
         print(f'Loading models {self.__repr__()}')
