@@ -90,7 +90,7 @@ class DataProcessor(nn.Module):
                 reconstruction.cpu()
             ], dim=1)
         else:
-            tensor_score = torch.cat(reconstruction, dim=0)
+            tensor_score = reconstruction.cpu()
         tensor_score = to_numpy(tensor_score)
         return tensor_score
 

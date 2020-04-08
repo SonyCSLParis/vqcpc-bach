@@ -115,15 +115,19 @@ def main(train,
 
     num_examples = 3
     for _ in range(num_examples):
-        scores = decoder.generate(temperature=1.0,
+        scores = decoder.generate(temperature=0.95,
+                                  top_p=0.9,
+                                  top_k=0,
                                   batch_size=3,
                                   plot_attentions=False)
         # for score in scores:
         #     score.show()
 
-    # scores = decoder.generate_reharmonisation(
-    #     temperature=1.2,
-    #     num_reharmonisations=3)
+    scores = decoder.generate_reharmonisation(
+        temperature=0.95,
+        top_p=0.8,
+        top_k=0,
+        num_reharmonisations=3)
     # for score in scores:
     #     score.show()
 
