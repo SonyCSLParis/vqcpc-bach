@@ -3,3 +3,4 @@ venv
 /data/
 /models/
 /docs/_site/
+/models_aws/
