@@ -43,7 +43,7 @@ config = {
     'quantizer_kwargs': dict(
         num_codebooks=1,
         codebook_size=32,
-        codebook_dim=3,
+        codebook_dim=32,
         commitment_cost=0.25,
         use_batch_norm=False,
         squared_l2_norm=True
