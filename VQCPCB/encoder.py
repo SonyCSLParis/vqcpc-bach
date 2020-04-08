@@ -173,12 +173,6 @@ class Encoder(nn.Module):
             tensor_score = self.data_processor.postprocess(original=None,
                                                            reconstruction=list_elements)
             dataloader_generator.write(tensor_score, save_path)
-
-            #
-            # tensor_score = self.data_processor.list_to_tensor(list_elements)
-            # score = dataloader_generator.to_score(tensor_score)
-            # self.data_processor.write(score, save_path)
-            # print(f'File {save_path} saved')
         return
 
     def show_nn_clusters(self, k=3):
