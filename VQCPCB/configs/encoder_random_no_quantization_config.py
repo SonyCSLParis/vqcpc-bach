@@ -61,7 +61,8 @@ config = {
             output_dim=32,
             hidden_size=512,
             num_layers=2,
-            dropout=0.1
+            dropout=0.1,
+            bidirectional=False,
         ),
     },
 
