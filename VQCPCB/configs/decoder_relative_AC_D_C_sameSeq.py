@@ -36,7 +36,7 @@ config = {
     'lr':                           1e-4,
     'schedule_lr':                  True,
     'batch_size':                   16,
-    'num_batches':                  1024,
+    'num_batches':                  2048,
     'num_epochs':                   20000,
 
     # ======== model ID ========
