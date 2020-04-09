@@ -556,8 +556,8 @@ class Decoder(nn.Module):
         )
 
         with torch.no_grad():
-            # tensor_dict = next(iter(generator_val))
-            tensor_dict = next(iter(generator_train))
+            tensor_dict = next(iter(generator_val))
+            # tensor_dict = next(iter(generator_train))
 
             x_original_single = tensor_dict['x']
             x_original = x_original_single.repeat(batch_size, 1, 1)
@@ -643,8 +643,11 @@ class Decoder(nn.Module):
                 x
             ], dim=0)
             _, recoding_, _ = self.encoder(x_re_encode)
-            recoding_ = recoding_.detach().cpu().numpy()
-            recoding = self.encoder.merge_codes(recoding_)
+            if recoding_ is not None:
+                recoding_ = recoding_.detach().cpu().numpy()
+                recoding = self.encoder.merge_codes(recoding_)
+            else:
+                recoding = None
 
         # to score
         original_and_reconstruction = self.data_processor.postprocess(original=x_original.long(),
@@ -657,11 +660,12 @@ class Decoder(nn.Module):
             os.mkdir(f'{self.model_dir}/generations')
 
         # Write code sequence
-        with open(f'{self.model_dir}/generations/{timestamp}.txt', 'w') as ff:
-            for batch_ind in range(len(recoding)):
-                aa = recoding[batch_ind]
-                ff.write(' , '.join(map(str, list(aa))))
-                ff.write('\n')
+        if recoding is not None:
+            with open(f'{self.model_dir}/generations/{timestamp}.txt', 'w') as ff:
+                for batch_ind in range(len(recoding)):
+                    aa = recoding[batch_ind]
+                    ff.write(' , '.join(map(str, list(aa))))
+                    ff.write('\n')
 
         # Write scores
         scores = []
