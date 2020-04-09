@@ -61,7 +61,7 @@ config = {
 
     # ======== AuxiliaryNetworks =====
     'auxiliary_networks_kwargs': {
-        'quantization_weighting': 1.0,
+        'quantization_weighting': 0.5,
         'c_net_kwargs': dict(
             output_dim=32,
             hidden_size=512,
