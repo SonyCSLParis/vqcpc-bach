@@ -219,10 +219,14 @@ class Decoder(nn.Module):
             source_embedding_dim = self.d_model
         elif self.transformer_type == 'absolute':
             source_embedding_dim = self.d_model - positional_embedding_size
-        codebook_size = self.encoder.quantizer.codebook_size ** self.encoder.quantizer.num_codebooks
-        self.source_embeddings = nn.Embedding(
-            codebook_size, source_embedding_dim
-        )
+        if not type(self.encoder.quantizer).__name__ == 'NoQuantization':
+            codebook_size = self.encoder.quantizer.codebook_size ** self.encoder.quantizer.num_codebooks
+            self.source_embeddings = nn.Embedding(
+                codebook_size, source_embedding_dim
+            )
+        else:
+            source_dim = self.encoder.quantizer.codebook_dim
+            self.source_embeddings = nn.Linear(source_dim, source_embedding_dim)
 
         ######################################################
         # Output dimension adjustment
@@ -317,7 +321,11 @@ class Decoder(nn.Module):
                 x = tensor_dict['x']
                 # compute encoding_indices version
                 z_quantized, encoding_indices, quantization_loss = self.encoder(x)
-                encoding_indices = self.encoder.merge_codes(encoding_indices)
+                if encoding_indices is None:
+                    # if no quantization is used, directly use the zs
+                    encoding_indices = z_quantized
+                else:
+                    encoding_indices = self.encoder.merge_codes(encoding_indices)
 
             # ======== Train decoder =============
             self.optimizer.zero_grad()
@@ -555,8 +563,12 @@ class Decoder(nn.Module):
             x_original = x_original_single.repeat(batch_size, 1, 1)
 
             # compute downscaled version
-            _, encoding_indices, _ = self.encoder(x_original)
-            encoding_indices = self.encoder.merge_codes(encoding_indices)
+            zs, encoding_indices, _ = self.encoder(x_original)
+            if encoding_indices is None:
+                # if no quantization is used, directly use the zs
+                encoding_indices = zs
+            else:
+                encoding_indices = self.encoder.merge_codes(encoding_indices)
 
             x = self.init_generation(num_events=self.data_processor.num_events)
 
