@@ -310,7 +310,7 @@ class VQCPCEncoderTrainer(EncoderTrainer):
             self.optimizer.zero_grad()
             if train:
                 loss.backward()
-                nn.utils.clip_grad_value_(self.parameters(), clip_value=5)
+                nn.utils.clip_grad_norm_(self.parameters(), 5)
                 self.optimizer.step()
             if train and (self.scheduler is not None):
                 self.scheduler.step()
