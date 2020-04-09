@@ -33,13 +33,21 @@ def quantization_loss(loss_quantization_left,
                       loss_quantization_negative,
                       loss_quantization_right,
                       loss_quantization_negative_back=None):
-    loss_quantization = torch.cat(
-        (loss_quantization_left.sum(1),
-         loss_quantization_right.sum(1),
-         loss_quantization_negative.sum(3).sum(2).sum(1),
-         loss_quantization_negative_back.sum(3).sum(2).sum(1),
-         ), dim=0
-    ).mean()
+    if loss_quantization_negative_back is None:
+        loss_quantization = torch.cat(
+            (loss_quantization_left.sum(1),
+             loss_quantization_right.sum(1),
+             loss_quantization_negative.sum(3).sum(2).sum(1),
+             ), dim=0
+        ).mean()
+    else:
+        loss_quantization = torch.cat(
+            (loss_quantization_left.sum(1),
+             loss_quantization_right.sum(1),
+             loss_quantization_negative.sum(3).sum(2).sum(1),
+             loss_quantization_negative_back.sum(3).sum(2).sum(1),
+             ), dim=0
+        ).mean()
     return loss_quantization
 
 
