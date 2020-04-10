@@ -34,6 +34,7 @@ config = {
     ),
     # ======== Training ========
     'lr':                          1e-4,
+    'schedule_lr':                 True,
     'batch_size':                  64,
     'num_batches':                 1024,
     'num_epochs':                  20000,
