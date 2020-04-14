@@ -871,8 +871,12 @@ class Decoder(nn.Module):
             x_chunks[-1] = last_chunk
             x_chunks = torch.cat([start_chunk] + x_chunks + [end_chunk], dim=0)
 
-            _, encoding_indices_stack, _ = self.encoder(x_chunks)
-            encoding_indices = self.encoder.merge_codes(encoding_indices_stack)
+            zs, encoding_indices_stack, _ = self.encoder(x_chunks)
+            if encoding_indices is None:
+                # if no quantization is used, directly use the zs
+                encoding_indices = zs
+            else:
+                encoding_indices = self.encoder.merge_codes(encoding_indices)
             print(encoding_indices.size())
 
             # glue all encoding indices
