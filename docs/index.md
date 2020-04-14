@@ -29,96 +29,40 @@ together with  mechanisms allowing to control the information content of these l
 - a *decoder* architecture which can generate sequences from the compressed representations learned by the encoder.
 In particular, it can be used to generate variations of a template sequence.
  
-Our experiments on the corpus of J.S. Bach chorales can be reproduced using this repository.
+We applied our technique on the corpus of J.S. Bach chorales to derive a generative model with high-level controls.
+In particular, it is particularly well-suited for generating variations of a given input chorale.
+Our experiments can be reproduced using the following repository: [https://github.com/SonyCSLParis/vqcpc-bach](https://github.com/SonyCSLParis/vqcpc-bac)
 
-Here, we directly embed the exposed elements
+
   * [Clusters](#clusters)
-    * [Random VQCPC](#random-vqcpc)
-    * [Same-sequence VQCPC](#Same-sequence VQCPC)
-    * [Student](#Student)
   * [Examples in the paper](#examples-in-the-paper)
   * [Variations of a source piece](#variations-of-a-source-piece)
-  * [Code](#code)
   
 ## Clusters
-The encoder learns a labelling over atomic structuring elements of a score (here one beat) by optimising a contrastive objective.
-Hence, an encoder defines a clustering of the space formed by these structuring elements.
-In the following animated pictures, each frame represents structuring elements from the set of Bach Chorales belonging to the same clusters.
-To stay concise, only a few number of points per cluster and a few number of clusters are diplayed on this site, 
-but more examples can be downloaded here [clusters.zip](exemples/clusters/clusters.zip).
-In our article, we explored three types of encoders which led to three different clustering:
- 
+The encoder learns to map atomic structuring elements of a time-series to a label belonging to a discrete alphabet.
+In other words, **an encoder defines a clustering of the space formed by structuring elements**.
+This clustering is learned in a self-supervised manner, by optimising a contrastive objective.
 
-- Random negative sampling
+In our experiment, we considered Bach chorales.
+We chose to define a structuring element as **one beat of a four voices chorale**. 
+Note that there is no restriction in using fixed length structuring elements, 
+and variable lengths could be used in other applications such as natural language processing.
 
-<img class="recimg" src="exemples/clusters/random/clusters_random.gif">
+In the following animated pictures, **each frame represents one cluster**,
+and **each bar represents one structuring element** belonging to that cluster. 
+A limited number of clusters and elements are diplayed on this site. 
+More examples can be downloaded here [clusters.zip](exemples/clusters/clusters.zip).
 
-- Same sequence negative sampling
+In our article, we explored three different self-supervised training objectives 
+which led to three different types of clustering:
 
-### Random-VQCPC
-Preserve tonality as it is the most discriminative features for 
-segments chosen randomly in the whole corpus.
+### *VQCPC* with random negative sampling
 
-<table>
-  <tr>
-    <td style="text-align: center; vertical-align: middle;"><b>Score</b></td>
-    <td style="text-align: center; vertical-align: middle;"><b>Audio Rendering</b></td>
-    <td style="text-align: center; vertical-align: middle;"><b>#Index: comments</b></td>
-  </tr>
-  
-  <tr>
-    <td><img class="recimg" src="exemples/clusters/random/test.gif"></td>
-    <td style="text-align: center; vertical-align: middle;">
-      <audio controls>
-      <source src="exemples/clusters/random/0.wav">
-      </audio>
-    </td>
-    <td >
-    #0:
-    </td>
-    
-  </tr>
-  
-  <tr>
-    <td><img class="recimg" src="exemples/clusters/random/1.png"></td>
-    <td style="text-align: center; vertical-align: middle;">
-      <audio controls>
-      <source src="exemples/clusters/random/1.mp3">
-      </audio>
-    </td>
-    <td>
-    #1: Mostly sustained notes in the Soprano
-    </td>
-  </tr>
-  
-  <tr>
-    <td><img class="recimg" src="exemples/clusters/random/5.png"></td>
-    <td style="text-align: center; vertical-align: middle;">
-      <audio controls>
-      <source src="exemples/clusters/random/5.mp3">
-      </audio>
-    </td>
-    <td>
-    #5: 
-    </td>
-  </tr>
-  
-  <tr>
-    <td><img class="recimg" src="exemples/clusters/random/5.png"></td>
-    <td style="text-align: center; vertical-align: middle;">
-      <audio controls>
-      <source src="exemples/clusters/random/5.mp3">
-      </audio>
-    </td>
-    <td>
-    #13: Soprano register is relatively constrained 
-    </td>
-  </tr>
- 
-  
-</table>
+<img class="recimg" src="exemples/clusters/clusters_random.gif">
 
-### Same-sequence
+### *VQCPC* with same sequence negative sampling
+
+<img class="recimg" src="exemples/clusters/clusters_sameSeq.gif">
 
   
 ## Examples in the paper

@@ -4,6 +4,7 @@ __pycache__/
 .idea
 /data/
 /models/
+docs/_site/index.html
 /docs/_site/
 /models_aws/
 /template_articles/

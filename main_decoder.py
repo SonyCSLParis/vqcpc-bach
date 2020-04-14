@@ -16,14 +16,16 @@ from VQCPCB.getters import get_dataloader_generator, get_encoder, get_data_proce
 @click.command()
 @click.option('-t', '--train', is_flag=True)
 @click.option('-l', '--load', is_flag=True)
+@click.option('-o', '--overfitted', is_flag=True, help='Load over-fitted weights for the decoder instead of early-stopped.'
+                                                       'Only used with -l')
 @click.option('-c', '--config', type=click.Path(exists=True))
 @click.option('-n', '--num_workers', type=int, default=0)
 def main(train,
          load,
+         overfitted,
          config,
          num_workers
          ):
-    overfitted = False
     # Use all gpus available
     gpu_ids = [int(gpu) for gpu in range(torch.cuda.device_count())]
     print(f'Using GPUs {gpu_ids}')
