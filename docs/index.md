@@ -14,8 +14,6 @@
       } 
 </script> 
 
-
-
 This is the companion website of the paper 
 [Vector Quantized Contrastive Predictive Coding for Template-based Music Generation](www.google.com).
 In this paper, we proposed a flexible method for generating variations of discrete sequences 
@@ -33,7 +31,7 @@ We applied our technique on the corpus of J.S. Bach chorales to derive a generat
 In particular, it is particularly well-suited for generating variations of a given input chorale.
 Our experiments can be reproduced using the following repository: [https://github.com/SonyCSLParis/vqcpc-bach](https://github.com/SonyCSLParis/vqcpc-bac)
 
-
+The results of our experiments are presented in the following sections
   * [Clusters](#clusters)
   * [Examples in the paper](#examples-in-the-paper)
   * [Variations of a source piece](#variations-of-a-source-piece)
@@ -53,16 +51,30 @@ and **each bar represents one structuring element** belonging to that cluster.
 A limited number of clusters and elements are diplayed on this site. 
 More examples can be downloaded here [clusters.zip](exemples/clusters/clusters.zip).
 
-In our article, we explored three different self-supervised training objectives 
-which led to three different types of clustering:
+In our article, we explored three different self-supervised training objectives:
+*VQCPC* with random negative sampling,
+*VQCPC* with same sequence negative sampling,
+and Distilled *VQ-VAE*.
+Each of them led to a different type of clustering which we display below: 
 
 ### *VQCPC* with random negative sampling
+The negative examples in the contrastive objective are sampled randomly among all chorales.
+Since chorales have been written in all possible key signatures and we used transposition as a data augmentation,
+an easy way to discriminate the positive examples from the negatives is to look at the alterations.
+Hence, the clusters are often composed by elements which can lie in the same or a related key.
 
 <img class="recimg" src="exemples/clusters/clusters_random.gif">
 
 ### *VQCPC* with same sequence negative sampling
-
+The negative examples in the contrastive objective are sampled in the same-sequence as the positive example, 
+but at different location (either before or after the position of the positive).
+In that case, the key is no longer a discriminative feature of the positive example. 
+On the contrary, the harmonic function is an informative indicator of the position of a chord in a phrase.
+Hence, clusters tend to contain elements which could share similar harmonic functions. 
+ 
 <img class="recimg" src="exemples/clusters/clusters_sameSeq.gif">
+
+### Distilled *VQ-VAE*
 
   
 ## Examples in the paper
