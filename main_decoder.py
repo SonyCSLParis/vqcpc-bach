@@ -16,14 +16,17 @@ from VQCPCB.getters import get_dataloader_generator, get_encoder, get_data_proce
 @click.command()
 @click.option('-t', '--train', is_flag=True)
 @click.option('-l', '--load', is_flag=True)
-@click.option('-o', '--overfitted', is_flag=True, help='Load over-fitted weights for the decoder instead of early-stopped.'
-                                                       'Only used with -l')
+@click.option('-o', '--overfitted', is_flag=True,
+              help='Load over-fitted weights for the decoder instead of early-stopped.'
+                   'Only used with -l')
 @click.option('-c', '--config', type=click.Path(exists=True))
+@click.option('-r', '--reharmonization', is_flag=True)
 @click.option('-n', '--num_workers', type=int, default=0)
 def main(train,
          load,
          overfitted,
          config,
+         reharmonization,
          num_workers
          ):
     # Use all gpus available
@@ -125,11 +128,12 @@ def main(train,
         # for score in scores:
         #     score.show()
 
-    scores = decoder.generate_reharmonisation(
-        temperature=0.95,
-        top_p=0.8,
-        top_k=0,
-        num_reharmonisations=3)
+    if reharmonization:
+        scores = decoder.generate_reharmonisation(
+            temperature=0.95,
+            top_p=0.8,
+            top_k=0,
+            num_reharmonisations=3)
     # for score in scores:
     #     score.show()
 
