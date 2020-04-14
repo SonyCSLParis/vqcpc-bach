@@ -41,8 +41,19 @@ Here, we directly embed the exposed elements
   * [Code](#code)
   
 ## Clusters
-Few interesting clusters obtained with different models.
-Actuyally much more elements per clusters, but only the beginning is shown.
+The encoder learns a labelling over atomic structuring elements of a score (here one beat) by optimising a contrastive objective.
+Hence, an encoder defines a clustering of the space formed by these structuring elements.
+In the following animated pictures, each frame represents structuring elements from the set of Bach Chorales belonging to the same clusters.
+To stay concise, only a few number of points per cluster and a few number of clusters are diplayed on this site, 
+but more examples can be downloaded here [clusters.zip](exemples/clusters/clusters.zip).
+In our article, we explored three types of encoders which led to three different clustering:
+ 
+
+- Random negative sampling
+
+<img class="recimg" src="exemples/clusters/random/clusters_random.gif">
+
+- Same sequence negative sampling
 
 ### Random-VQCPC
 Preserve tonality as it is the most discriminative features for 
