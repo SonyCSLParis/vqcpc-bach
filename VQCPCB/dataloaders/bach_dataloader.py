@@ -32,7 +32,6 @@ class BachDataloaderGenerator(DataloaderGenerator):
 
     def write(self, x, path):
         """
-
         :param x: (batch_size, num_events, num_channels)
         :return: list of music21.Score
         """

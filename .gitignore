@@ -7,3 +7,4 @@ __pycache__/
 /docs/_site/
 /models_aws/
 /template_articles/
+**/.DS_Store
