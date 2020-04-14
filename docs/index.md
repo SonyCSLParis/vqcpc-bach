@@ -67,15 +67,15 @@ Hence, the clusters are often composed by elements which can lie in the same or 
 
 ### *VQCPC* with same sequence negative sampling
 The negative examples in the contrastive objective are sampled in the same-sequence as the positive example, 
-but at different location (either before or after the position of the positive).
-In that case, the key is no longer a discriminative feature of the positive example. 
+but at different locations (either before or after the position of the positive).
+In that case, the contrastive objective is similar to learning to sort the elements of the score in a chronological order.  
+In that case, the key is no longer a discriminative feature of the positive example.
 On the contrary, the harmonic function is an informative indicator of the position of a chord in a phrase.
-Hence, clusters tend to contain elements which could share similar harmonic functions. 
+Hence, clusters tend to contain elements which could share similar harmonic functions.
  
 <img class="recimg" src="exemples/clusters/clusters_sameSeq.gif">
 
 ### Distilled *VQ-VAE*
-
   
 ## Examples in the paper
 
