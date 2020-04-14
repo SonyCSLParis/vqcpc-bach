@@ -2,7 +2,7 @@ from pathlib import Path
 
 
 config = {
-    'config_encoder':              'models/encoder_sameSeq_config_2020-03-31_12-50-24/config.py',
+    'config_encoder':              'models/encoder_sameSeq_16C_2020-04-10_09-16-03/config.py',
     'training_method':             'decoder',
     'dataset':                     'bach',
 
@@ -30,13 +30,13 @@ config = {
         num_decoder_layers=3,
         dim_feedforward=1024,
         positional_embedding_size=8,
-        dropout=0.1,
+        dropout=0.2,
     ),
     # ======== Training ========
     'lr':                           1e-4,
     'schedule_lr':                  True,
-    'batch_size':                   16,
-    'num_batches':                  2048,
+    'batch_size':                   32,
+    'num_batches':                  1024,
     'num_epochs':                   20000,
 
     # ======== model ID ========
