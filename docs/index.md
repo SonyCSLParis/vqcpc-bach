@@ -133,6 +133,9 @@ Hence, clusters tend to contain elements which could share similar harmonic func
   </tr>
 </table>
 
+++ EXEMPLE WITH A RANDOM ENCODER
 
+## Codes juxtaposition ??
+Beginning from one score, end with another
 
 

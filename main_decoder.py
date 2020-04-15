@@ -21,12 +21,14 @@ from VQCPCB.getters import get_dataloader_generator, get_encoder, get_data_proce
                    'Only used with -l')
 @click.option('-c', '--config', type=click.Path(exists=True))
 @click.option('-r', '--reharmonization', is_flag=True)
+@click.option('--code_juxtaposition', is_flag=True)
 @click.option('-n', '--num_workers', type=int, default=0)
 def main(train,
          load,
          overfitted,
          config,
          reharmonization,
+         code_juxtaposition,
          num_workers
          ):
     # Use all gpus available
@@ -118,13 +120,26 @@ def main(train,
             num_workers=num_workers
         )
 
-    num_examples = 1
+    num_examples = 3
     for _ in range(num_examples):
+        if code_juxtaposition:
+            scores = decoder.generate(
+                temperature=1.0,
+                top_p=0.9,
+                top_k=0,
+                batch_size=3,
+                seed_set='val',
+                plot_attentions=False,
+                code_juxtaposition=True
+            )
+
         scores = decoder.generate(temperature=1.0,
                                   top_p=0.9,
                                   top_k=0,
                                   batch_size=3,
-                                  plot_attentions=False)
+                                  seed_set='val',
+                                  plot_attentions=False,
+                                  code_juxtaposition=False)
         # for score in scores:
         #     score.show()
 
