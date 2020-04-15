@@ -672,6 +672,7 @@ class Decoder(nn.Module):
         for k, tensor_score in enumerate(original_and_reconstruction):
             path_no_extension = f'{self.model_dir}/generations/{timestamp}_{k}'
             scores.append(self.dataloader_generator.write(tensor_score, path_no_extension))
+        print(f'Saved in {self.model_dir}/generations/{timestamp}')
         ###############################
 
         if plot_attentions:
