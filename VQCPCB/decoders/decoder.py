@@ -681,12 +681,16 @@ class Decoder(nn.Module):
         ###############################
         # Saving
         timestamp = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
-        if not os.path.exists(f'{self.model_dir}/generations'):
-            os.mkdir(f'{self.model_dir}/generations')
+        if code_juxtaposition:
+            save_dir = f'{self.model_dir}/juxtapositions'
+        else:
+            save_dir = f'{self.model_dir}/generations'
+        if not os.path.exists(save_dir):
+            os.mkdir(save_dir)
 
         # Write code sequence
         if recoding is not None:
-            with open(f'{self.model_dir}/generations/{timestamp}.txt', 'w') as ff:
+            with open(f'{save_dir}/{timestamp}.txt', 'w') as ff:
                 for batch_ind in range(len(recoding)):
                     aa = recoding[batch_ind]
                     ff.write(' , '.join(map(str, list(aa))))
@@ -695,9 +699,9 @@ class Decoder(nn.Module):
         # Write scores
         scores = []
         for k, tensor_score in enumerate(original_and_reconstruction):
-            path_no_extension = f'{self.model_dir}/generations/{timestamp}_{k}'
+            path_no_extension = f'{save_dir}/{timestamp}_{k}'
             scores.append(self.dataloader_generator.write(tensor_score, path_no_extension))
-        print(f'Saved in {self.model_dir}/generations/{timestamp}')
+        print(f'Saved in {save_dir}/{timestamp}')
         ###############################
 
         if plot_attentions:
