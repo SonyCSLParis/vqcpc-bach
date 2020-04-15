@@ -284,8 +284,10 @@ class Decoder(nn.Module):
     def load(self, early_stopped, device):
         print(f'Loading models {self.__repr__()}')
         if early_stopped:
+            print('Load early stopped model')
             model_dir = f'{self.model_dir}/early_stopped'
         else:
+            print('Load over-fitted model')
             model_dir = f'{self.model_dir}/overfitted'
         self.load_state_dict(torch.load(f'{model_dir}/decoder', map_location=torch.device(device)))
 
