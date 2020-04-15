@@ -118,7 +118,7 @@ def main(train,
             num_workers=num_workers
         )
 
-    num_examples = 3
+    num_examples = 1
     for _ in range(num_examples):
         scores = decoder.generate(temperature=1.0,
                                   top_p=0.9,
