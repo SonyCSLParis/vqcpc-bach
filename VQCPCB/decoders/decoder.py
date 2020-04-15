@@ -529,9 +529,9 @@ class Decoder(nn.Module):
 
         loss = loss.mean()
         return {
-            'loss':                 loss,
-            'attentions_decoder':   attentions_decoder,
-            'attentions_encoder':   attentions_encoder,
+            'loss': loss,
+            'attentions_decoder': attentions_decoder,
+            'attentions_encoder': attentions_encoder,
             'weights_per_category': weights_per_category,
             'monitored_quantities': {
                 'loss': loss.item()
@@ -549,8 +549,10 @@ class Decoder(nn.Module):
                  batch_size=1,
                  top_k=0,
                  top_p=1.,
+                 seed_set=None,
                  exclude_meta_symbols=False,
-                 plot_attentions=False):
+                 plot_attentions=False,
+                 code_juxtaposition=False):
         self.eval()
         (generator_train, generator_val, _) = self.dataloader_generator.dataloaders(
             batch_size=1,
@@ -558,11 +560,32 @@ class Decoder(nn.Module):
         )
 
         with torch.no_grad():
-            tensor_dict = next(iter(generator_val))
-            # tensor_dict = next(iter(generator_train))
+            if code_juxtaposition:
+                # Use the codes of a chorale for the first half, and the codes from another chorale for the last half
+                if seed_set == 'val':
+                    tensor_dict_beginning = next(iter(generator_val))
+                    tensor_dict_end = next(iter(generator_val))
+                elif seed_set == 'train':
+                    tensor_dict_beginning = next(iter(generator_train))
+                    tensor_dict_end = next(iter(generator_train))
+                else:
+                    raise Exception('Need to indicate seeds dataset')
 
-            x_original_single = tensor_dict['x']
-            x_original = x_original_single.repeat(batch_size, 1, 1)
+                num_events_chorale_half = tensor_dict_beginning['x'].shape[1] // 2
+                x_beg = tensor_dict_beginning['x'][:, :num_events_chorale_half]
+                x_end = tensor_dict_end['x'][:, num_events_chorale_half:]
+                x_original_single = torch.cat([x_beg, x_end], dim=1)
+                x_original = x_original_single.repeat(batch_size, 1, 1)
+            else:
+                if seed_set == 'val':
+                    tensor_dict = next(iter(generator_val))
+                elif seed_set == 'train':
+                    tensor_dict = next(iter(generator_train))
+                else:
+                    raise Exception('Need to indicate seeds dataset')
+
+                x_original_single = tensor_dict['x']
+                x_original = x_original_single.repeat(batch_size, 1, 1)
 
             # compute downscaled version
             zs, encoding_indices, _ = self.encoder(x_original)
