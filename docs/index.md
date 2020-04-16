@@ -78,6 +78,29 @@ Hence, clusters tend to contain elements which could share similar harmonic func
 ### Distilled *VQ-VAE*
   
 ## Examples in the paper
+Example from the article.
+Decoder is trained to generate a chorale from a sequence of codes.
+Codes computed on a 6 bars excerpt which serves as a seed.
+Seed codes are decoded into variations of the seed chorale.
+Three types of encoders yield three types of variations.
+
+### *VQCPC* with random negative sampling
+Seed = valid
+early stopped
+temperature = 1.0
+top = 0.9
+
+<img class="recimg" src="exemples/variations_random/2020-04-15_07-59-25-1.png">
+<center>
+<audio controls>
+<source src="exemples/variations_random/2020-04-15_07-59-25.mp3">
+</audio>
+</center>
+    
+
+### *VQCPC* with same sequence negative sampling
+
+### Distilled *VQ-VAE*
 
 ## Variations of a source piece
 <table>
