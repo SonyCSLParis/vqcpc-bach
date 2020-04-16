@@ -296,8 +296,13 @@ class Decoder(nn.Module):
         mask = mask.float().masked_fill(mask == 0, float('-inf')).masked_fill(mask == 1, float(0.0))
         return mask
 
-    def _generate_anticausal_mask(self, sz):
-        return cuda_variable(self._generate_square_subsequent_mask(sz)).t()
+    def _generate_anticausal_mask(self, sz, sz_tgt=None):
+        mask = cuda_variable(self._generate_square_subsequent_mask(sz)).t()
+        if sz_tgt is not None:
+            assert sz_tgt % sz == 0
+            subsampling_factor = sz_tgt // sz
+            mask = torch.repeat_interleave(mask, subsampling_factor, dim=0)
+        return mask
 
     def _generate_causal_mask(self, sz):
         return cuda_variable(self._generate_square_subsequent_mask(sz))
@@ -487,8 +492,7 @@ class Decoder(nn.Module):
             # faut repeat_interleave pour faire des masques rectangulaires
             # c'est chiant....
         elif self.cross_attention_type == 'anticausal':
-            raise NotImplementedError
-            # pareil
+            memory_mask = self._generate_anticausal_mask(source_length, target_length)
 
         # self-encoder masks
         if self.encoder_attention_type in ['diagonal', 'full']:
