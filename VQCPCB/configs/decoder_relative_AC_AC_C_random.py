@@ -2,13 +2,13 @@ from pathlib import Path
 
 
 config = {
-    'config_encoder':              'models/encoder_random_config_2020-03-31_12-52-30/config.py',
+    'config_encoder':              'models/encoder_random_16C_2020-04-09_08-39-28/config.py',
     'training_method':             'decoder',
     'dataset':                     'bach',
 
     # --- Dataloader ---
     'dataloader_generator_kwargs': dict(
-        sequences_size=12
+        sequences_size=24
     ),  # Can be different from the encoder's data loader
 
     # --- DataProcessor ---
@@ -30,12 +30,13 @@ config = {
         num_decoder_layers=3,
         dim_feedforward=1024,
         positional_embedding_size=8,
-        dropout=0.1,
+        dropout=0.2,
     ),
     # ======== Training ========
     'lr':                          1e-4,
-    'batch_size':                  16,
-    'num_batches':                 None,
+    'schedule_lr':                  True,
+    'batch_size':                  4,
+    'num_batches':                 2,
     'num_epochs':                  20000,
 
     # ======== model ID ========
