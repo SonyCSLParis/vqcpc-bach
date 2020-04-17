@@ -59,10 +59,16 @@ def main(train,
     # ==== Load encoders ====
     # load stack of encoders from top-most encoder (lastly trained)
     config_encoder_path = config['config_encoder']
+    if config_encoder_path is None:
+        # Load any encoder w/ 16 code
+        config_encoder_path = 'VQCPCB/configs/encoder_random_16C.py'
     config_encoder_module_name = os.path.splitext(config_encoder_path)[0].replace('/', '.')
     config_encoder = importlib.import_module(config_encoder_module_name).config
     config_encoder['quantizer_kwargs']['initialize'] = False
-    model_dir_encoder = os.path.dirname(config_encoder_path)
+    if config['config_encoder'] is None:
+        model_dir_encoder = None
+    else:
+        model_dir_encoder = os.path.dirname(config_encoder_path)
     dataloader_generator = get_dataloader_generator(
         dataset=config_encoder['dataset'],
         training_method=config_encoder['training_method'],
@@ -72,7 +78,8 @@ def main(train,
                           dataloader_generator=dataloader_generator,
                           config=config_encoder
                           )
-    encoder.load(early_stopped=False, device=device)
+    if config['config_encoder'] is not None:
+        encoder.load(early_stopped=False, device=device)
 
     # === Decoder ====
     dataloader_generator = get_dataloader_generator(
