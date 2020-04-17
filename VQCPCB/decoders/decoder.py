@@ -819,8 +819,7 @@ class Decoder(nn.Module):
 
         # slice
         chorale = chorale[:, num_events_before_start:num_events_before_end]
-        tensor_scores = self.data_processor.postprocess(original=None,
-                                                        reconstruction=chorale)
+        tensor_scores = to_numpy(chorale)
         # Write scores
         scores = []
         for k, tensor_score in enumerate(tensor_scores):
@@ -852,7 +851,8 @@ class Decoder(nn.Module):
 
         return t_begin, t_end, t_relative
 
-    def generate_reharmonisation(self, num_reharmonisations,
+    def generate_reharmonisation(self,
+                                 num_reharmonisations,
                                  temperature,
                                  top_k,
                                  top_p):
@@ -864,7 +864,7 @@ class Decoder(nn.Module):
         """
         import music21
         cl = music21.corpus.chorales.ChoraleList()
-        print(cl.byBWV.keys())
+        print(f'# Chorale BWV\n{list(cl.byBWV.keys())}')
 
         for bwv in cl.byBWV.keys():
             chorale_m21 = music21.corpus.chorales.getByTitle(cl.byBWV[bwv]['title'])
@@ -895,22 +895,32 @@ class Decoder(nn.Module):
             pad_chunk_end = torch.Tensor(PAD).unsqueeze(0).unsqueeze(0).repeat(
                 1, self.data_processor.num_events - 1, 1
             ).long()
-            end_chunk = torch.cat([end_chunk_, pad_chunk_end], 1)
-
-            # last chunk
-            completion_chunk = torch.Tensor(PAD).unsqueeze(0).unsqueeze(0).repeat(
-                1, self.data_processor.num_events - last_chunk.size(1) - 1, 1
+            end_pad_chunk = torch.cat([end_chunk_, pad_chunk_end], 1)
+            pad_only_chunk = torch.Tensor(PAD).unsqueeze(0).unsqueeze(0).repeat(
+                1, self.data_processor.num_events, 1
             ).long()
-            last_chunk = torch.cat([last_chunk, end_chunk_, completion_chunk], 1)
+            completion_length = self.data_processor.num_events - last_chunk.size(1)
+            if completion_length > 1:
+                pad_completion_chunk = torch.Tensor(PAD).unsqueeze(0).unsqueeze(0).repeat(
+                    1, completion_length-1, 1
+                ).long()
+                last_chunk = torch.cat([last_chunk, end_chunk_, pad_completion_chunk], 1)
+                end_chunk = pad_only_chunk
+            elif completion_length == 1:
+                last_chunk = torch.cat([last_chunk, end_chunk_], 1)
+                end_chunk = pad_only_chunk
+            elif completion_length == 0:
+                last_chunk = last_chunk
+                end_chunk = end_pad_chunk
             x_chunks[-1] = last_chunk
             x_chunks = torch.cat([start_chunk] + x_chunks + [end_chunk], dim=0)
 
             zs, encoding_indices_stack, _ = self.encoder(x_chunks)
-            if encoding_indices is None:
+            if encoding_indices_stack is None:
                 # if no quantization is used, directly use the zs
                 encoding_indices = zs
             else:
-                encoding_indices = self.encoder.merge_codes(encoding_indices)
+                encoding_indices = self.encoder.merge_codes(encoding_indices_stack)
             print(encoding_indices.size())
 
             # glue all encoding indices
@@ -921,9 +931,9 @@ class Decoder(nn.Module):
             # compute code_index start and stop
             total_upscaling = int(np.prod(self.encoder.downscaler.downscale_factors))
             code_index_start = start_chunk.size(1) * self.num_channels // total_upscaling
-            code_index_end = encoding_indices.size(1) - (
-                    end_chunk.size(1) + completion_chunk.size(1)) * self.num_channels // \
-                             total_upscaling
+            code_index_end = encoding_indices.size(1) - \
+                             (end_chunk.size(1) + completion_length) \
+                             * self.num_channels // total_upscaling
 
             scores = self.generate_from_code_long(encoding_indices,
                                                   num_decodings=num_reharmonisations,
