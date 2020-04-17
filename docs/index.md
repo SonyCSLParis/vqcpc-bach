@@ -87,8 +87,22 @@ Three types of encoders yield three types of variations.
 ### *VQCPC* with random negative sampling
 Seed = valid
 early stopped
-temperature = 1.0
-top = 0.9
+temperature = 0.95
+top = 0.8
+16 Codes
+AC // AC // C
+INCLUDE LES CODES RCALCULES ? MOI JE TROUVE CA BIEN
+
+
+<img class="recimg" src="exemples/variations_random/2020-04-17_07-53-10-1.png">
+<center>
+<audio controls>
+<source src="exemples/variations_random/2020-04-17_07-53-10.mp3">
+</audio>
+</center>
+
+<br/>
+<br/>
 
 <img class="recimg" src="exemples/variations_random/2020-04-15_07-59-25-1.png">
 <center>
