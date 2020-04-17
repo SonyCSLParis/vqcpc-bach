@@ -852,7 +852,8 @@ class Decoder(nn.Module):
 
         return t_begin, t_end, t_relative
 
-    def generate_reharmonisation(self, num_reharmonisations,
+    def generate_reharmonisation(self,
+                                 num_reharmonisations,
                                  temperature,
                                  top_k,
                                  top_p):
@@ -906,11 +907,11 @@ class Decoder(nn.Module):
             x_chunks = torch.cat([start_chunk] + x_chunks + [end_chunk], dim=0)
 
             zs, encoding_indices_stack, _ = self.encoder(x_chunks)
-            if encoding_indices is None:
+            if encoding_indices_stack is None:
                 # if no quantization is used, directly use the zs
                 encoding_indices = zs
             else:
-                encoding_indices = self.encoder.merge_codes(encoding_indices)
+                encoding_indices = self.encoder.merge_codes(encoding_indices_stack)
             print(encoding_indices.size())
 
             # glue all encoding indices
