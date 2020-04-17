@@ -127,7 +127,7 @@ def main(train,
             num_workers=num_workers
         )
 
-    num_examples = 0
+    num_examples = 6
     for _ in range(num_examples):
         if code_juxtaposition:
             scores = decoder.generate(
@@ -140,8 +140,8 @@ def main(train,
                 code_juxtaposition=True
             )
 
-        scores = decoder.generate(temperature=1.0,
-                                  top_p=0.9,
+        scores = decoder.generate(temperature=0.95,
+                                  top_p=0.8,
                                   top_k=0,
                                   batch_size=3,
                                   seed_set='val',
