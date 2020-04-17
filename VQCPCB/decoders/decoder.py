@@ -930,7 +930,7 @@ class Decoder(nn.Module):
             )
             # compute code_index start and stop
             total_upscaling = int(np.prod(self.encoder.downscaler.downscale_factors))
-            code_index_start = (start_chunk.size(1) - 1) * self.num_channels // total_upscaling
+            code_index_start = start_chunk.size(1) * self.num_channels // total_upscaling
             code_index_end = encoding_indices.size(1) - \
                              (end_chunk.size(1) + completion_length) \
                              * self.num_channels // total_upscaling
