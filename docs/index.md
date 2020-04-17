@@ -15,28 +15,50 @@
 </script> 
 
 This is the companion website of the paper 
-[Vector Quantized Contrastive Predictive Coding for Template-based Music Generation](www.google.com).
+[Vector Quantized Contrastive Predictive Coding for Template-based
+Music Generation](TODO) by Hadjeres and Crestel.
+<br/>
+
 In this paper, we proposed a flexible method for generating variations of discrete sequences 
 in which tokens can be grouped into basic units, like sentences in a text or bars in music.
 More precisely, given a template sequence, we aim at producing novel sequences sharing perceptible similarities 
-with the original template without relying on any annotation.
+with the original template without relying on any annotation. The
+novelty of our approach is to cast the problem of generating
+variations as a problem representation learning.
+
 We introduce 
- - a *self-supervised encoding* technique, named *Vector Quantized Contrastive Predictive Coding* (*VQCPC*), 
+ - a *self-supervised encoding* technique, named *Vector-Quantized Contrastive Predictive Coding* (*VQ-CPC*), 
 which allows to learn a meaningful assignment of the basic units over a discrete set of codes,
-together with  mechanisms allowing to control the information content of these learnt discrete representations.
-- a *decoder* architecture which can generate sequences from the compressed representations learned by the encoder.
-In particular, it can be used to generate variations of a template sequence.
- 
-We applied our technique on the corpus of J.S. Bach chorales to derive a generative model with high-level controls.
-In particular, it is particularly well-suited for generating variations of a given input chorale.
-Our experiments can be reproduced using the following repository: [https://github.com/SonyCSLParis/vqcpc-bach](https://github.com/SonyCSLParis/vqcpc-bac)
+together with  mechanisms allowing to control the information content
+of these learnt discrete representations,
+- an appropriate *decoder* architecture which can generate sequences
+  from the compressed representations learned by the encoder.
+  
+VQ-CPC consists in the introduction of a quantization bottleneck in
+the [Contrastive Predictive Coding](https://arxiv.org/abs/1807.03748) (CPC) objective. Contrary to other
+approaches like [VQ-VAE](https://arxiv.org/abs/1711.00937) which aim at obtaining perfect reconstructions
+and are trained by minimizing a likelihood-based loss, we choose
+instead to
+highly-compress our representations and consider codebooks orders of
+magnitude smaller than these approaches (typically 8 or 16) and
+maximize a different objective. We show that our approach allows to
+obtain a meanigful clustering of the basic units and that this
+clustering can then be used in a generation perspective. Moreover, we
+are able to emphasize the importance of the sampling distribution of
+the negative samples in the CPC objective on the learnt clusters.
+
+
+We applied our technique on the corpus of J.S. Bach chorales to derive a generative model  particularly well-suited for generating variations of a given input chorale.
+Our experiments can be reproduced using our [Github repository](https://github.com/SonyCSLParis/vqcpc-bac).
 
 The results of our experiments are presented in the following sections
   * [Clusters](#clusters)
   * [Examples in the paper](#examples-in-the-paper)
-  * [Variations of a source piece](#variations-of-a-source-piece)
-  
-## Clusters
+  * [Variations of a template chorale](#variations-of-a-source-piece)
+
+
+___
+## Clusters <a id="clusters"></a>
 The encoder learns to map atomic structuring elements of a time-series to a label belonging to a discrete alphabet.
 In other words, **an encoder defines a clustering of the space formed by structuring elements**.
 This clustering is learned in a self-supervised manner, by optimising a contrastive objective.
@@ -52,8 +74,8 @@ A limited number of clusters and elements are diplayed on this site.
 More examples can be downloaded here [clusters.zip](exemples/clusters/clusters.zip).
 
 In our article, we explored three different self-supervised training objectives:
-*VQCPC* with random negative sampling,
-*VQCPC* with same sequence negative sampling,
+*VQ-CPC* with random negative sampling,
+*VQ-CPC* with same sequence negative sampling,
 and Distilled *VQ-VAE*.
 Each of them led to a different type of clustering which we display below: 
 
@@ -88,65 +110,146 @@ often composed of contiguous notes).
  
 <img class="recimg" src="exemples/clusters/clusters_distill.gif">
 
-### Distilled *VQ-VAE*
-  
-## Examples in the paper
-Example from the article.
-Decoder is trained to generate a chorale from a sequence of codes.
-Codes computed on a 6 bars excerpt which serves as a seed.
-Seed codes are decoded into variations of the seed chorale.
-Three types of encoders yield three types of variations.
+---
 
-### *VQCPC* with random negative sampling
-Seed = valid
-early stopped
-temperature = 0.95
-top = 0.8
-16 Codes
-AC // AC // C
-INCLUDE LES CODES RCALCULES ? MOI JE TROUVE CA BIEN
+## Generating variations <a id="examples-in-the-paper"></a>
+When the encoders are trained, we can then train a decoder to
+reconstruct the original chorale given its sequence of codes. Because
+we limited to 16 the total number of different codes, perfect reconstruction
+is almost impossible. This results in the possibility to generate
+variations of a template chorale simply by computing its sequence of
+codes and then decoding it. The decoded chorale will share perceptual
+similarities with the template chorale and these similarities will
+depend on what information is contained in the codes.
 
+In the following, we provide variations of a 6-bar template chorale
+for the three different methods we considered.
 
+### *VQ-CPC* with random negative sampling
+Example #1:
+<table>
+<tr>
+<td>
 <img class="recimg" src="exemples/variations_random/2020-04-17_07-53-10-1.png">
+</td>
+</tr>
+<tr>
+<td>
 <center>
 <audio controls>
 <source src="exemples/variations_random/2020-04-17_07-53-10.mp3">
 </audio>
 </center>
+</td>
+</tr>
+</table>
 
 <br/>
-<br/>
-
+Example #2:
+<table>
+<tr>
+<td>
 <img class="recimg" src="exemples/variations_random/2020-04-15_07-59-25-1.png">
+</td>
+</tr>
+<tr>
+<td>
 <center>
 <audio controls>
 <source src="exemples/variations_random/2020-04-15_07-59-25.mp3">
 </audio>
 </center>
-    
+</td>
+</tr>
+</table>
 
-### *VQCPC* with same sequence negative sampling
-
+<br/>
+---
+### *VQ-CPC* with same sequence negative sampling
+Example #1:
+<table>
+<tr>
+<td>
 <img class="recimg" src="exemples/variations_random/2020-04-17_07-53-10-1.png">
+
+</td>
+</tr>
+<tr>
+<td>
 <center>
 <audio controls>
 <source src="exemples/variations_random/2020-04-17_07-53-10.mp3">
 </audio>
 </center>
-
+</td>
+</tr>
+</table>
 <br/>
-<br/>
 
-<img class="recimg" src="exemples/variations_random/2020-04-15_07-59-25-1.png">
+Example #2:
+<table>
+<tr>
+<td>
+<img class="recimg" src="exemples/variations_random/2020-04-17_07-53-10-1.png">
+
+</td>
+</tr>
+<tr>
+<td>
 <center>
 <audio controls>
-<source src="exemples/variations_random/2020-04-15_07-59-25.mp3">
+<source src="exemples/variations_random/2020-04-17_07-53-10.mp3">
 </audio>
 </center>
+</td>
+</tr>
+</table>
+<br/>
+
+---
+
 ### Distilled *VQ-VAE*
+Example #1:
+<table>
+<tr>
+<td>
+<img class="recimg"
+src="exemples/variations_distill/Variations_distill_1_val.png">
+</td>
+</tr>
+<tr>
+<td>
+<center>
+<audio controls>
+<source src="exemples/variations_distill/Variations_distill_1_val.ogg">
+</audio>
+</center>
+</td>
+</tr>
+</table>
 
+<br/>
+Example #2:
+<table>
+<tr>
+<td>
+<img class="recimg"
+src="exemples/variations_distill/Variations_distill_1_train.png">
+</td>
+</tr>
+<tr>
+<td>
+<center>
+<audio controls>
+<source src="exemples/variations_distill/Variations_distill_1_train.ogg">
+</audio>
+</center>
+</td>
+</tr>
+</table>
 
-## Variations of a source piece
+___
+## Variations of a template chorale <a id="variations-of-a-source-piece"></a>
 <table>
 <caption><b> Source </b></caption>
   <tr>
