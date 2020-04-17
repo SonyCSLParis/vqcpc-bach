@@ -100,16 +100,6 @@ INCLUDE LES CODES RCALCULES ? MOI JE TROUVE CA BIEN
 <source src="exemples/variations_random/2020-04-17_07-53-10.mp3">
 </audio>
 </center>
-
-<br/>
-<br/>
-
-<img class="recimg" src="exemples/variations_random/2020-04-15_07-59-25-1.png">
-<center>
-<audio controls>
-<source src="exemples/variations_random/2020-04-15_07-59-25.mp3">
-</audio>
-</center>
     
 
 ### *VQCPC* with same sequence negative sampling
