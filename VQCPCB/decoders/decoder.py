@@ -902,7 +902,7 @@ class Decoder(nn.Module):
             completion_length = self.data_processor.num_events - last_chunk.size(1)
             if completion_length > 1:
                 pad_completion_chunk = torch.Tensor(PAD).unsqueeze(0).unsqueeze(0).repeat(
-                    1, completion_length-1, 1
+                    1, completion_length - 1, 1
                 ).long()
                 last_chunk = torch.cat([last_chunk, end_chunk_, pad_completion_chunk], 1)
                 end_chunk = pad_only_chunk
@@ -932,7 +932,7 @@ class Decoder(nn.Module):
             total_upscaling = int(np.prod(self.encoder.downscaler.downscale_factors))
             code_index_start = start_chunk.size(1) * self.num_channels // total_upscaling
             code_index_end = encoding_indices.size(1) - \
-                             (end_chunk.size(1) + completion_length) \
+                             (end_chunk.size(1) + completion_length - 1) \
                              * self.num_channels // total_upscaling
 
             scores = self.generate_from_code_long(encoding_indices,
