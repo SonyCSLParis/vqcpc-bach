@@ -51,6 +51,8 @@ the negative samples in the CPC objective on the learnt clusters.
 We applied our technique on the corpus of J.S. Bach chorales to derive a generative model  particularly well-suited for generating variations of a given input chorale.
 Our experiments can be reproduced using our [Github repository](https://github.com/SonyCSLParis/vqcpc-bac).
 
+
+
 The results of our experiments are presented in the following sections
   * [Clusters](#clusters)
   * [Examples in the paper](#examples-in-the-paper)
@@ -59,8 +61,8 @@ The results of our experiments are presented in the following sections
 
 ___
 ## Clusters <a id="clusters"></a>
-The encoder learns to map atomic structuring elements of a time-series to a label belonging to a discrete alphabet.
-In other words, **an encoder defines a clustering of the space formed by structuring elements**.
+The encoder simply learns to map subsequences of a time series to a label belonging to a discrete alphabet.
+In other words, **an encoder defines a clustering of the space of subsequences**.
 This clustering is learned in a self-supervised manner, by optimising a contrastive objective.
 
 In our experiment, we considered Bach chorales.
@@ -73,11 +75,15 @@ and **each bar represents one structuring element** belonging to that cluster.
 A limited number of clusters and elements are diplayed on this site. 
 More examples can be downloaded here [clusters.zip](exemples/clusters/clusters.zip).
 
-In our article, we explored three different self-supervised training objectives:
-*VQ-CPC* with random negative sampling,
-*VQ-CPC* with same sequence negative sampling,
-and Distilled *VQ-VAE*.
-Each of them led to a different type of clustering which we display below: 
+In our article, we explored three different self-supervised training
+objectives:
+*VQ-CPC* with random negative sampling and
+*VQ-CPC* with same sequence negative sampling which we compare with
+what we termed a Distilled *VQ-VAE* inspired from the [Hierarchical
+Autoregressive Image Models with Auxiliary
+Decoders](https://arxiv.org/abs/1903.04933) by De Fauw et al.
+
+Each of them led to a different type of clustering which we display below:
 
 ### *VQ-CPC* with random negative sampling
 The negative examples in the contrastive objective are sampled randomly among all chorales.
