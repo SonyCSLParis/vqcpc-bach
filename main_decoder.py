@@ -127,7 +127,7 @@ def main(train,
             num_workers=num_workers
         )
 
-    num_examples = 3
+    num_examples = 0
     for _ in range(num_examples):
         if code_juxtaposition:
             scores = decoder.generate(
