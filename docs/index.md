@@ -57,7 +57,7 @@ In our article, we explored three different self-supervised training objectives:
 and Distilled *VQ-VAE*.
 Each of them led to a different type of clustering which we display below: 
 
-### *VQCPC* with random negative sampling
+### *VQ-CPC* with random negative sampling
 The negative examples in the contrastive objective are sampled randomly among all chorales.
 Since chorales have been written in all possible key signatures and we used transposition as a data augmentation,
 an easy way to discriminate the positive examples from the negatives is to look at the alterations.
@@ -65,7 +65,7 @@ Hence, the clusters are often composed by elements which can lie in the same or 
 
 <img class="recimg" src="exemples/clusters/clusters_random.gif">
 
-### *VQCPC* with same sequence negative sampling
+### *VQ-CPC* with same sequence negative sampling
 The negative examples in the contrastive objective are sampled in the same-sequence as the positive example, 
 but at different locations (either before or after the position of the positive).
 In that case, the contrastive objective is similar to learning to sort the elements of the score in a chronological order.  
@@ -74,6 +74,19 @@ On the contrary, the harmonic function is an informative indicator of the positi
 Hence, clusters tend to contain elements which could share similar harmonic functions.
  
 <img class="recimg" src="exemples/clusters/clusters_sameSeq.gif">
+
+### Clusters obtained with the Distilled *VQ-VAE*
+With the Distilled VQ-VAE model, the discrete codes are trained to
+minimize a likelihood-based loss. As a result, the encoder tends to
+focus on capturing the key of the fragments, as was the case with the
+*VQ-CPC* codes with random negative sampling. However, we observe that
+the range of the soprano voice is also captured: the maximal range of
+the soprano part in a given cluster is not greater than a sixth. This
+behaviour can be explained as the soprano voice tends to be more regular
+than the other voices in the particular case of Bach chorales (it is
+often composed of contiguous notes).
+ 
+<img class="recimg" src="exemples/clusters/clusters_distill.gif">
 
 ### Distilled *VQ-VAE*
   
@@ -114,7 +127,24 @@ INCLUDE LES CODES RCALCULES ? MOI JE TROUVE CA BIEN
 
 ### *VQCPC* with same sequence negative sampling
 
+<img class="recimg" src="exemples/variations_random/2020-04-17_07-53-10-1.png">
+<center>
+<audio controls>
+<source src="exemples/variations_random/2020-04-17_07-53-10.mp3">
+</audio>
+</center>
+
+<br/>
+<br/>
+
+<img class="recimg" src="exemples/variations_random/2020-04-15_07-59-25-1.png">
+<center>
+<audio controls>
+<source src="exemples/variations_random/2020-04-15_07-59-25.mp3">
+</audio>
+</center>
 ### Distilled *VQ-VAE*
+
 
 ## Variations of a source piece
 <table>
