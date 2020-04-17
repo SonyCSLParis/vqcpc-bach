@@ -898,10 +898,14 @@ class Decoder(nn.Module):
             end_chunk = torch.cat([end_chunk_, pad_chunk_end], 1)
 
             # last chunk
-            completion_chunk = torch.Tensor(PAD).unsqueeze(0).unsqueeze(0).repeat(
-                1, self.data_processor.num_events - last_chunk.size(1) - 1, 1
-            ).long()
-            last_chunk = torch.cat([last_chunk, end_chunk_, completion_chunk], 1)
+            completion_length = self.data_processor.num_events - last_chunk.size(1) - 1
+            if completion_length > 0:
+                completion_chunk = torch.Tensor(PAD).unsqueeze(0).unsqueeze(0).repeat(
+                    1, completion_length, 1
+                ).long()
+                last_chunk = torch.cat([last_chunk, end_chunk_, completion_chunk], 1)
+            else:
+                last_chunk = torch.cat([last_chunk, end_chunk_], 1)
             x_chunks[-1] = last_chunk
             x_chunks = torch.cat([start_chunk] + x_chunks + [end_chunk], dim=0)
 
