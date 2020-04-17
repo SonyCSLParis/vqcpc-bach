@@ -819,8 +819,7 @@ class Decoder(nn.Module):
 
         # slice
         chorale = chorale[:, num_events_before_start:num_events_before_end]
-        tensor_scores = self.data_processor.postprocess(original=None,
-                                                        reconstruction=chorale)
+        tensor_scores = to_numpy(chorale)
         # Write scores
         scores = []
         for k, tensor_score in enumerate(tensor_scores):
