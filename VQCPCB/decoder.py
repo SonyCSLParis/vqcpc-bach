@@ -10,9 +10,8 @@ from torch import nn
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 
-from VQCPCB.data_processor.data_processor import DataProcessor
-from VQCPCB.dataloaders.dataloader_generator import DataloaderGenerator
-from VQCPCB.datasets.helpers import PAD_SYMBOL, START_SYMBOL, END_SYMBOL
+from VQCPCB.data.chorale_dataset import END_SYMBOL, START_SYMBOL, PAD_SYMBOL
+from VQCPCB.data.data_processor import DataProcessor
 from VQCPCB.transformer.transformer_custom import TransformerCustom, TransformerDecoderCustom, \
     TransformerEncoderCustom, \
     TransformerDecoderLayerCustom, TransformerEncoderLayerCustom, \
@@ -25,7 +24,7 @@ from VQCPCB.utils import cuda_variable, categorical_crossentropy, flatten, dict_
 class Decoder(nn.Module):
     def __init__(self,
                  model_dir,
-                 dataloader_generator: DataloaderGenerator,
+                 dataloader_generator,
                  data_processor: DataProcessor,
                  encoder,
                  transformer_type,  # absolute or relative
@@ -377,9 +376,6 @@ class Decoder(nn.Module):
                     num_workers=0,
                     **kwargs
                     ):
-        # (generator_train,
-        #  generator_val,
-        #  generator_test) = self.dataset.data_loaders(batch_size=batch_size)
         if plot:
             self.writer = SummaryWriter(f'{self.model_dir}')
 
@@ -757,25 +753,30 @@ class Decoder(nn.Module):
             for code_index in range(code_index_start, code_index_end):
                 for relative_event in range(self.num_events_per_code):
                     for channel_index in range(self.data_processor.num_channels):
+                        ####################################
+                        # Get time indices
                         t_begin, t_end, t_relative = self.compute_start_end_times(
                             code_index, num_blocks=size_encoding,
                             num_blocks_model=num_tokens_indices
                         )
 
+                        ####################################
+                        # Prepare network inputs
                         input_encoding_indices = encoding_indices[:, t_begin:t_end]
-
                         input_chorale = chorale[:,
                                         t_begin * self.num_events_per_code: t_end * self.num_events_per_code,
                                         :]
+
+                        ####################################
+                        # Forward pass in decoder
                         weights_per_voice = self.forward(input_encoding_indices,
                                                          input_chorale)['weights_per_category']
-
-                        # Keep only the last token predictions of the first batch item (batch size 1), apply a
-                        # temperature coefficient and filter
+                        # Keep only the last token predictions of the first batch item (batch size 1)
                         weights = weights_per_voice[channel_index]
                         logits = weights[:, t_relative * self.num_events_per_code + relative_event,
                                  :] / temperature
 
+                        ####################################
                         # Remove meta symbols
                         if exclude_meta_symbols:
                             for sym in [START_SYMBOL, END_SYMBOL, PAD_SYMBOL]:
@@ -785,6 +786,7 @@ class Decoder(nn.Module):
                                         sym]
                                 logits[:, sym_index] = -float("inf")
 
+                        ####################################
                         # Top-p sampling
                         filtered_logits = []
                         for logit in logits:
@@ -794,15 +796,8 @@ class Decoder(nn.Module):
                         # Sample from the filtered distribution
                         p = to_numpy(torch.softmax(filtered_logits, dim=-1))
 
-                        # weights = weights_per_voice[channel_index]
-                        # probs = torch.softmax(
-                        #     weights[:, t_relative * self.num_events_per_code + relative_event, :],
-                        #     dim=1)
-                        # p = to_numpy(probs)
-                        # # temperature ?!
-                        # p = np.exp(np.log(p + 1e-20) * temperature)
-                        # p = p / p.sum(axis=1, keepdims=True)
-
+                        ####################################
+                        # Sample and add to generated score
                         for batch_index in range(batch_size):
                             new_pitch_index = np.random.choice(np.arange(
                                 self.num_tokens_per_channel[channel_index]
@@ -947,65 +942,6 @@ class Decoder(nn.Module):
             chorale_m21.write('xml', f'{reharmonisation_dir}/BWV{bwv}_original.xml')
         return scores
 
-    def generate_alla_mano(self, start_codes, end_codes, body_codes, temperature):
-        code_index_start = len(start_codes)
-        encoding_indices = start_codes + \
-                           body_codes
-        code_index_end = len(encoding_indices)
-        encoding_indices += end_codes
-        encoding_indices = torch.Tensor(encoding_indices).unsqueeze(0).long().to('cuda')
-
-        scores = self.generate_from_code_long(
-            encoding_indices=encoding_indices,
-            temperature=temperature,
-            num_decodings=3,
-            code_index_start=code_index_start,
-            code_index_end=code_index_end)
-
-        save_dir = f'{self.model_dir}/alla_mano'
-        if not os.path.exists(save_dir):
-            os.mkdir(save_dir)
-        for k, score in enumerate(scores):
-            score.write('xml', f'{save_dir}/{k}.xml')
-
-        return scores
-
-    def check_duplicate(self, generation, original):
-        from difflib import SequenceMatcher
-        s1 = self.data_processor.dump(generation)
-        s2 = self.data_processor.dump(original)
-
-        match = SequenceMatcher(None, s1, s2).find_longest_match(0, len(s1), 0, len(s2))
-        print(match)
-        print(s1[match.a: match.a + match.size])
-        print(f'Num tokens plagiarisms: {(match.size - 1) / 3}')
-
-    def check_duplicate_all_corpus(self, generation):
-        from difflib import SequenceMatcher
-        s1 = self.data_processor.dump(generation)
-        (generator_train, generator_val, _) = self.dataloader_generator.dataloaders(
-            batch_size=1,
-            shuffle_val=True,
-            shuffle_train=False
-        )
-        best_x = None
-        best_size = 0
-        for tensor_dict in tqdm(generator_train):
-            x = tensor_dict['x']
-            s2 = self.data_processor.dump(x[0])
-            match = SequenceMatcher(None, s1, s2, autojunk=False).find_longest_match(0, len(s1),
-                                                                                     0, len(s2))
-            if match.size > best_size:
-                best_x = x
-                best_size = match.size
-            # print(match)
-            # print(s1[match.a: match.a + match.size])
-
-        print(f'Num tokens plagiarisms: {(best_size - 1) / 3}')
-        print(f'Num beats plagiarisms: {(best_size - 1) / 3 / 4 / 4}')
-
-        return best_x
-
     def plot_attention(self,
                        attentions_list,
                        timestamp,
@@ -1039,8 +975,6 @@ class Decoder(nn.Module):
             # plt.show()
         plt.close()
 
-    # TODO put this in data_processor/dataloader_generator
-    # but hard!
     def init_generation_chorale(self, num_events, start_index):
         PAD = [d[PAD_SYMBOL] for d in self.dataloader_generator.dataset.note2index_dicts]
         START = [d[START_SYMBOL] for d in self.dataloader_generator.dataset.note2index_dicts]

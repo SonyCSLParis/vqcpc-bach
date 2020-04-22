@@ -1,13 +1,12 @@
-import torch
 import music21
-from VQCPCB.dataloaders.cpc_dataloader import CPCDataloaderGenerator
-from VQCPCB.datasets.chorale_dataset import ChoraleBeatsDataset
+import torch
+from VQCPCB.data.chorale_dataset import ChoraleBeatsDataset
 
 subdivision = 4
 num_voices = 4
 
 
-class BachCPCDataloaderGenerator(CPCDataloaderGenerator):
+class BachCPCDataloaderGenerator:
     def __init__(self,
                  num_tokens_per_block,
                  num_blocks_left,
@@ -26,12 +25,13 @@ class BachCPCDataloaderGenerator(CPCDataloaderGenerator):
         :param kwargs:
         """
         assert num_tokens_per_block % (subdivision * num_voices) == 0
-        super(BachCPCDataloaderGenerator, self).__init__(
-            num_tokens_per_block,
-            num_blocks_left,
-            num_blocks_right,
-            negative_sampling_method,
-            num_negative_samples)
+        super(BachCPCDataloaderGenerator, self).__init__()
+        self.num_negative_samples = num_negative_samples
+        self.num_tokens_per_block = num_tokens_per_block
+        self.num_blocks_left = num_blocks_left
+        self.num_blocks_right = num_blocks_right
+        self.negative_sampling_method = negative_sampling_method
+
         # load dataset
         datasets = self._dataset()
         self.dataset = datasets['positive']
@@ -89,10 +89,7 @@ class BachCPCDataloaderGenerator(CPCDataloaderGenerator):
         else:
             raise NotImplementedError
 
-    def dataloaders(self,
-                    batch_size,
-                    num_workers=0
-                    ):
+    def dataloaders(self, batch_size, num_workers, shuffle_train, shuffle_val):
         """
 
         :return: torch Dataloader, returns a dict of
@@ -100,14 +97,18 @@ class BachCPCDataloaderGenerator(CPCDataloaderGenerator):
         #
         if self.negative_sampling_method == 'random':
             return self._dataloader_random(batch_size=batch_size,
-                                           num_workers=num_workers)
+                                           num_workers=num_workers,
+                                           shuffle_train=shuffle_train,
+                                           shuffle_val=shuffle_val)
         elif self.negative_sampling_method == 'same_sequence':
             return self._dataloader_same_sequence(batch_size=batch_size,
-                                                  num_workers=num_workers)
+                                                  num_workers=num_workers,
+                                                  shuffle_train=shuffle_train,
+                                                  shuffle_val=shuffle_val)
         else:
             raise NotImplementedError
 
-    def _dataloader_same_sequence(self, batch_size, num_workers):
+    def _dataloader_same_sequence(self, batch_size, num_workers, shuffle_train, shuffle_val):
         """
         Dataloader for negative_sampling_method == 'random'
         :param batch_size:
@@ -124,7 +125,9 @@ class BachCPCDataloaderGenerator(CPCDataloaderGenerator):
 
         dataloaders = self.dataset.data_loaders(
             batch_size=batch_size,
-            num_workers=num_workers
+            num_workers=num_workers,
+            shuffle_train=shuffle_train,
+            shuffle_val=shuffle_val,
         )
 
         # Generate dataloaders
@@ -180,7 +183,7 @@ class BachCPCDataloaderGenerator(CPCDataloaderGenerator):
         )
         return negative_sample
 
-    def _dataloader_random(self, batch_size, num_workers):
+    def _dataloader_random(self, batch_size, num_workers, shuffle_train, shuffle_val):
         """
         Dataloader for negative_sampling_method == 'random'
         :param batch_size:
@@ -197,21 +200,24 @@ class BachCPCDataloaderGenerator(CPCDataloaderGenerator):
         positive_dataloaders = self.dataset.data_loaders(
             batch_size=batch_size,
             num_workers=num_workers,
-            indexed_dataloaders=False
+            shuffle_train=shuffle_train,
+            shuffle_val=shuffle_val,
         )
 
         # Negative dataset
         negative_dataloaders = self.dataset_negative.data_loaders(
             batch_size=batch_size * self.num_negative_samples * self.num_blocks_right,
             num_workers=num_workers,
-            indexed_dataloaders=False
+            shuffle_train=shuffle_train,
+            shuffle_val=shuffle_val
         )
 
         # Negative dataset
         negative_dataloaders_backward = self.dataset_negative.data_loaders(
             batch_size=batch_size * self.num_negative_samples * self.num_blocks_right,
             num_workers=num_workers,
-            indexed_dataloaders=False
+            shuffle_train=shuffle_train,
+            shuffle_val=shuffle_val
         )
 
         # Generate dataloaders

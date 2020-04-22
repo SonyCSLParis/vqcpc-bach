@@ -9,8 +9,8 @@ from datetime import datetime
 import click
 import torch
 
-from VQCPCB.data_processor.data_processor import DataProcessor
-from VQCPCB.getters import get_dataloader_generator, get_encoder, get_data_processor, get_decoder
+from VQCPCB.data.data_processor import DataProcessor
+from VQCPCB.getters import get_dataloader_generator, get_encoder, get_decoder, get_data_processor
 
 
 @click.command()
@@ -70,7 +70,6 @@ def main(train,
     else:
         model_dir_encoder = os.path.dirname(config_encoder_path)
     dataloader_generator = get_dataloader_generator(
-        dataset=config_encoder['dataset'],
         training_method=config_encoder['training_method'],
         dataloader_generator_kwargs=config_encoder['dataloader_generator_kwargs'],
     )
@@ -83,14 +82,12 @@ def main(train,
 
     # === Decoder ====
     dataloader_generator = get_dataloader_generator(
-        dataset=config['dataset'],
         training_method=config['training_method'],
         dataloader_generator_kwargs=config['dataloader_generator_kwargs']
     )
 
     data_processor: DataProcessor = get_data_processor(
         dataloader_generator=dataloader_generator,
-        data_processor_type=config['data_processor_type'],
         data_processor_kwargs=config['data_processor_kwargs']
     )
 
@@ -156,23 +153,6 @@ def main(train,
             top_p=0.8,
             top_k=0,
             num_reharmonisations=3)
-    # for score in scores:
-    #     score.show()
-
-    # # Body code: need do check cluster before adding values
-    # start_cluster = 7
-    # end_cluster = 21
-    # pad_cluster = 12
-    #
-    # start_codes = [pad_cluster] * 5 + [start_cluster]
-    # end_codes = [end_cluster] + [pad_cluster] * 5
-    # body_codes = [1] * 16   # put what u want here
-    # scores = decoder.generate_alla_mano(
-    #     start_codes=start_codes,
-    #     end_codes=end_codes,
-    #     body_codes=body_codes,
-    #     temperature=1.2,
-    # )
     # for score in scores:
     #     score.show()
 
