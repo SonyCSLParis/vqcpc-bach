@@ -261,7 +261,7 @@ ___
 # Variations of a template chorale <a id="variations-of-a-source-piece"></a>
 We provide additional examples of variations. In this section, we
 generate variations based on a full template chorale by using the
-models from the preceding section with a moving window.
+models from the preceding section with a sliding window.
 
 ## Variations of a full chorale with *VQ-CPC-SameSeq*
 Original chorale:
