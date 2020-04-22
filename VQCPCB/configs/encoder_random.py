@@ -6,7 +6,7 @@ num_voices = 4
 num_tokens_per_block = num_beats * subdivision * num_voices
 num_block_left = 6
 num_block_right = 6
-sequences_size = num_beats
+sequences_size = num_beats * (num_block_right + num_block_left)
 
 config = {
     'training_method': 'vqcpc',  # vqcpc or student
@@ -16,7 +16,7 @@ config = {
     'dataloader_generator_kwargs': dict(num_tokens_per_block=num_tokens_per_block,
                                         num_blocks_left=num_block_left,
                                         num_blocks_right=num_block_right,
-                                        negative_sampling_method='same_sequence',  # random or same_sequence
+                                        negative_sampling_method='random',  # random or same_sequence
                                         num_negative_samples=15,            # useless in the same_sequence case
                                         sequences_size=sequences_size,      # used only for visualising clusters
                                         ),
@@ -29,22 +29,20 @@ config = {
         embedding_size=32
     ),
     # --- Downscaler ---
-    'downscaler_type': 'relative_transformer_downscaler_linear',
-    'downscaler_kwargs':           dict(
+    # 'downscaler_type': 'relative_transformer_downscaler',
+    'downscaler_type': 'lstm_downscaler',
+    'downscaler_kwargs': dict(
         # DCPC uses a Transformer
-        downscale_factors=[4, 4],
-        num_channels=num_voices,
-        d_model=512,
-        n_head=8,
-        list_of_num_layers=[2, 2],
-        dim_feedforward=2048,
-        dropout=0.1
+        downscale_factors=[num_tokens_per_block],
+        hidden_size=512,
+        num_layers=2,
+        dropout=0.1,
+        bidirectional=True
     ),
     # --- Quantizer ---
     'quantizer_type': 'commitment',
     'quantizer_kwargs': dict(
-        num_codebooks=1,
-        codebook_size=32,
+        codebook_size=16,
         codebook_dim=3,
         commitment_cost=0.25,
         use_batch_norm=False,
@@ -55,7 +53,6 @@ config = {
     'upscaler_type': 'mlp_upscaler',  # mlp_upscaler
     # 'upscaler_type': None,  # mlp_upscaler
     'upscaler_kwargs': dict(
-        # DCPC uses a Transformer
         output_dim=32,
         hidden_size=512,
         dropout=0.1
@@ -68,15 +65,16 @@ config = {
             output_dim=32,
             hidden_size=512,
             num_layers=2,
-            dropout=0.1
+            dropout=0.1,
+            bidirectional=False
         ),
     },
 
     # ======== Training ========
     'lr': 1e-4,
-    'schedule_lr': True,
+    'schedule_lr': False,
     'batch_size': 16,
-    'num_batches': 256,
+    'num_batches': 2,
     'num_epochs': 20000,
     'quantizer_regularization': dict(
         corrupt_labels=False

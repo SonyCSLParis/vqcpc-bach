@@ -147,7 +147,6 @@ def get_encoder(model_dir,
         if config['quantizer_type'] == 'commitment':
             quantizer = ProductVectorQuantizer(
                 codebook_size=quantizer_kwargs['codebook_size'],
-                num_codebooks=quantizer_kwargs['num_codebooks'],
                 codebook_dim=quantizer_kwargs['codebook_dim'],
                 initialize=quantizer_kwargs['initialize'],
                 squared_l2_norm=quantizer_kwargs['squared_l2_norm'],

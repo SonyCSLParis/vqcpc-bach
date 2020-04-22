@@ -56,27 +56,6 @@ class DataProcessor(nn.Module):
             for k, v in tensor_dict.items()
         }
 
-    def preprocess_dict(self, tensor_dict):
-        """
-        put to cuda and format as (... num_events, num_channels)
-        :param tensor_dict:
-        :return:
-        """
-        return {
-            k: self.preprocess(v)
-            for k, v in tensor_dict.items()
-        }
-
-    def preprocess(self, x):
-        """
-        Subclasses can only reimplement this method
-        This is not necessary
-
-        :param x: ? -> (batch_size, num_events, num_channels)
-        :return:
-        """
-        return cuda_variable(x.long())
-
     def postprocess(self, original, reconstruction):
         """
         Inverse of preprocess

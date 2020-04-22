@@ -331,8 +331,6 @@ class Decoder(nn.Module):
                 if encoding_indices is None:
                     # if no quantization is used, directly use the zs
                     encoding_indices = z_quantized
-                else:
-                    encoding_indices = self.encoder.merge_codes(encoding_indices)
 
             # ======== Train decoder =============
             self.optimizer.zero_grad()
@@ -596,8 +594,6 @@ class Decoder(nn.Module):
             if encoding_indices is None:
                 # if no quantization is used, directly use the zs
                 encoding_indices = zs
-            else:
-                encoding_indices = self.encoder.merge_codes(encoding_indices)
 
             x = self.init_generation(num_events=self.data_processor.num_events)
 
@@ -671,12 +667,9 @@ class Decoder(nn.Module):
                 cuda_variable(x_original_single.long()),
                 x
             ], dim=0)
-            _, recoding_, _ = self.encoder(x_re_encode)
-            if recoding_ is not None:
-                recoding_ = recoding_.detach().cpu().numpy()
-                recoding = self.encoder.merge_codes(recoding_)
-            else:
-                recoding = None
+            _, recoding, _ = self.encoder(x_re_encode)
+            if recoding is not None:
+                recoding = recoding.detach().cpu().numpy()
 
         # to score
         original_and_reconstruction = self.data_processor.postprocess(original=x_original.long(),
@@ -918,12 +911,10 @@ class Decoder(nn.Module):
             x_chunks[-1] = last_chunk
             x_chunks = torch.cat([start_chunk] + x_chunks + [end_chunk], dim=0)
 
-            zs, encoding_indices_stack, _ = self.encoder(x_chunks)
-            if encoding_indices_stack is None:
+            zs, encoding_indices, _ = self.encoder(x_chunks)
+            if encoding_indices is None:
                 # if no quantization is used, directly use the zs
                 encoding_indices = zs
-            else:
-                encoding_indices = self.encoder.merge_codes(encoding_indices_stack)
             print(encoding_indices.size())
 
             # glue all encoding indices
