@@ -332,7 +332,7 @@ class Decoder(nn.Module):
                     # if no quantization is used, directly use the zs
                     encoding_indices = z_quantized
                 else:
-                    encoding_indices = self.encoder.merge_codes(encoding_indices)
+                    encoding_indices = encoding_indices
 
             # ======== Train decoder =============
             self.optimizer.zero_grad()
