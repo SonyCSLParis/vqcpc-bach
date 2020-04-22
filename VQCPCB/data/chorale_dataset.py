@@ -6,13 +6,18 @@ import numpy as np
 import torch
 from torch.utils.data import TensorDataset, DataLoader
 from tqdm import tqdm
+import VQCPCB
 
-from VQCPCB.datasets.dataset import Dataset
-from VQCPCB.datasets.helpers import standard_name, SLUR_SYMBOL, START_SYMBOL, END_SYMBOL, \
-    standard_note, OUT_OF_RANGE, REST_SYMBOL, PAD_SYMBOL
+# constants
+SLUR_SYMBOL = '__'
+START_SYMBOL = 'START'
+END_SYMBOL = 'END'
+REST_SYMBOL = 'rest'
+OUT_OF_RANGE = 'OOR'
+PAD_SYMBOL = 'XX'
 
 
-class ChoraleBeatsDataset(Dataset):
+class ChoraleBeatsDataset:
     """
     Class for all chorale-like datasets
     """
@@ -34,6 +39,11 @@ class ChoraleBeatsDataset(Dataset):
         :param subdivision: number of sixteenth notes per beat
         """
         super(ChoraleBeatsDataset, self).__init__()
+
+        self.database_root = os.path.abspath(f'{os.path.dirname(VQCPCB.__file__)}/../data')
+        if not os.path.isdir(self.database_root):
+            os.mkdir(self.database_root)
+
         self.voice_ids = voice_ids
         self.num_voices = len(voice_ids)
         self.name = 'chorale_beats_dataset'
@@ -542,10 +552,10 @@ class ChoraleBeatsDataset(Dataset):
     def data_loaders(self,
                      batch_size,
                      num_workers,
+                     shuffle_train,
+                     shuffle_val,
                      split=(0.85, 0.10),
-                     shuffle_train=True,
-                     shuffle_val=False,
-                     indexed_dataloaders=False):
+                     ):
 
         # Load tensor dataset if exists
         tensor_dataset_path = f'{self.cache_dir}/tensor_dataset'
@@ -593,3 +603,45 @@ class ChoraleBeatsDataset(Dataset):
             drop_last=True,
         )
         return train_dl, val_dl, eval_dl
+
+
+def standard_name(note_or_rest, voice_range=None):
+    """
+    Convert music21 objects to str
+    :param note_or_rest:
+    :return:
+    """
+    if isinstance(note_or_rest, music21.note.Note):
+        if voice_range is not None:
+            min_pitch, max_pitch = voice_range
+            pitch = note_or_rest.pitch.midi
+            if pitch < min_pitch or pitch > max_pitch:
+                return OUT_OF_RANGE
+        return note_or_rest.nameWithOctave
+    if isinstance(note_or_rest, music21.note.Rest):
+        return note_or_rest.name  # == 'rest' := REST_SYMBOL
+    if isinstance(note_or_rest, str):
+        return note_or_rest
+
+    if isinstance(note_or_rest, music21.harmony.ChordSymbol):
+        return note_or_rest.figure
+    if isinstance(note_or_rest, music21.expressions.TextExpression):
+        return note_or_rest.content
+
+
+def standard_note(note_or_rest_string):
+    if note_or_rest_string == 'rest':
+        return music21.note.Rest()
+    # treat other additional symbols as rests
+    elif note_or_rest_string == END_SYMBOL:
+        return music21.note.Note('D~3', quarterLength=1)
+    elif note_or_rest_string == START_SYMBOL:
+        return music21.note.Note('C~3', quarterLength=1)
+    elif note_or_rest_string == PAD_SYMBOL:
+        return music21.note.Note('E~3', quarterLength=1)
+    elif note_or_rest_string == SLUR_SYMBOL:
+        return music21.note.Rest()
+    elif note_or_rest_string == OUT_OF_RANGE:
+        return music21.note.Rest()
+    else:
+        return music21.note.Note(note_or_rest_string)

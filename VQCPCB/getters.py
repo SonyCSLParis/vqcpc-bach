@@ -1,46 +1,40 @@
 import numpy as np
 
-from VQCPCB.auxiliary_decoders.auxiliary_decoder import AuxiliaryDecoder
-from VQCPCB.auxiliary_decoders.auxiliary_decoder_relative import AuxiliaryDecoderRelative
-from VQCPCB.data_processor.data_processor import DataProcessor
-from VQCPCB.dataloaders.bach_cpc_dataloader import BachCPCDataloaderGenerator
-from VQCPCB.dataloaders.bach_dataloader import BachDataloaderGenerator
-from VQCPCB.decoders.decoder import Decoder
+from VQCPCB.data.dataloaders.bach_cpc_dataloader import BachCPCDataloaderGenerator
+from VQCPCB.distilled_vae.auxiliary_decoders.auxiliary_decoder import AuxiliaryDecoder
+from VQCPCB.distilled_vae.auxiliary_decoders.auxiliary_decoder_relative import AuxiliaryDecoderRelative
+from VQCPCB.data.data_processor import DataProcessor
+from VQCPCB.data.dataloaders.bach_dataloader import BachDataloaderGenerator
+from VQCPCB.decoder import Decoder
 from VQCPCB.downscalers.lstm_downscaler import LstmDownscaler
 from VQCPCB.downscalers.relative_transformer_downscaler import RelativeTransformerDownscaler
 from VQCPCB.downscalers.relative_transformer_downscaler_linear import \
     RelativeTransformerDownscalerLinear
 from VQCPCB.encoder import Encoder
-from VQCPCB.priors.prior_relative import PriorRelative
 from VQCPCB.quantizer.vector_quantizer import ProductVectorQuantizer, NoQuantization
-from VQCPCB.student_encoder_trainer import StudentEncoderTrainer
-from VQCPCB.teachers.teacher_relative import TeacherRelative
+from VQCPCB.distilled_vae.student_encoder_trainer import StudentEncoderTrainer
+from VQCPCB.distilled_vae.teachers.teacher_relative import TeacherRelative
 from VQCPCB.upscalers.mlp_upscaler import MlpUpscaler
-from VQCPCB.vqcpc_encoder_trainer import VQCPCEncoderTrainer
+from VQCPCB.vqcpc.vqcpc_encoder_trainer import VQCPCEncoderTrainer
 
 
 def get_dataloader_generator(
-        dataset,
         training_method,
         dataloader_generator_kwargs):
-    if dataset.lower() == 'bach':
-        if training_method.lower() == 'vqcpc':
-            return BachCPCDataloaderGenerator(
-                num_tokens_per_block=dataloader_generator_kwargs['num_tokens_per_block'],
-                num_blocks_left=dataloader_generator_kwargs['num_blocks_left'],
-                num_blocks_right=dataloader_generator_kwargs['num_blocks_right'],
-                negative_sampling_method=dataloader_generator_kwargs['negative_sampling_method'],
-                num_negative_samples=dataloader_generator_kwargs['num_negative_samples']
-            )
-        elif (training_method.lower() == 'student'
-              or training_method.lower() == 'decoder'
-              or training_method.lower() == 'prior'):
-            return BachDataloaderGenerator(
-                sequences_size=dataloader_generator_kwargs['sequences_size']
-            )
-    else:
-        raise NotImplementedError("If you want to use your own datasets, you need to implement a"
-                                  " datasets, data_processor and dataloader")
+    if training_method.lower() == 'vqcpc':
+        return BachCPCDataloaderGenerator(
+            num_tokens_per_block=dataloader_generator_kwargs['num_tokens_per_block'],
+            num_blocks_left=dataloader_generator_kwargs['num_blocks_left'],
+            num_blocks_right=dataloader_generator_kwargs['num_blocks_right'],
+            negative_sampling_method=dataloader_generator_kwargs['negative_sampling_method'],
+            num_negative_samples=dataloader_generator_kwargs['num_negative_samples']
+        )
+    elif (training_method.lower() == 'student'
+          or training_method.lower() == 'decoder'
+          or training_method.lower() == 'prior'):
+        return BachDataloaderGenerator(
+            sequences_size=dataloader_generator_kwargs['sequences_size']
+        )
 
 
 def get_downscaler(downscaler_type,
@@ -118,7 +112,6 @@ def get_encoder(model_dir,
     if training_method.lower() == 'vqcpc':
         data_processor: DataProcessor = get_data_processor(
             dataloader_generator=dataloader_generator,
-            data_processor_type=config['data_processor_type'],
             data_processor_kwargs=config['data_processor_kwargs'],
         )
 
@@ -163,7 +156,6 @@ def get_encoder(model_dir,
     elif training_method.lower() == 'student':
         data_processor: DataProcessor = get_data_processor(
             dataloader_generator=dataloader_generator,
-            data_processor_type=config['data_processor_type'],
             data_processor_kwargs=config['data_processor_kwargs']
         )
 
@@ -177,7 +169,6 @@ def get_encoder(model_dir,
 
         quantizer = ProductVectorQuantizer(
             codebook_size=quantizer_kwargs['codebook_size'],
-            num_codebooks=quantizer_kwargs['num_codebooks'],
             codebook_dim=quantizer_kwargs['codebook_dim'],
             initialize=quantizer_kwargs['initialize'],
             squared_l2_norm=quantizer_kwargs['squared_l2_norm'],
@@ -209,10 +200,7 @@ def get_teacher(teacher_type,
                 dataloader_generator):
     data_processor_config = teacher_kwargs['data_processor_config']
     data_processor = get_data_processor(dataloader_generator=dataloader_generator,
-                                        data_processor_type=data_processor_config[
-                                            'data_processor_type'],
-                                        data_processor_kwargs=data_processor_config[
-                                            'data_processor_kwargs']
+                                        data_processor_kwargs=data_processor_config['data_processor_kwargs']
                                         )
     return TeacherRelative(
         num_layers=teacher_kwargs['num_layers'],
@@ -381,39 +369,6 @@ def get_decoder(model_dir,
     return decoder
 
 
-def get_prior(model_dir,
-              dataloader_generator,
-              encoder,
-              prior_type,
-              prior_kwargs
-              ):
-    if prior_type == 'transformer_relative':
-        num_channels = 1
-        data_processor = encoder.data_processor
-        num_events = int(
-            (data_processor.num_events * data_processor.num_channels) // \
-            (
-                    np.prod(encoder.downscaler.downscale_factors) * num_channels)
-        )
-
-        prior = PriorRelative(
-            model_dir,
-            dataloader_generator=dataloader_generator,
-            encoder=encoder,
-            d_model=prior_kwargs['d_model'],
-            num_layers=prior_kwargs['num_layers'],
-            n_head=prior_kwargs['n_head'],
-            dim_feedforward=prior_kwargs['dim_feedforward'],
-            embedding_size=prior_kwargs['embedding_size'],
-            dropout=prior_kwargs['dropout'],
-            num_channels=num_channels,
-            num_events=num_events
-        )
-    else:
-        raise NotImplementedError
-    return prior
-
-
 def get_encoder_trainer(model_dir,
                         dataloader_generator,
                         training_method,
@@ -471,7 +426,6 @@ def get_encoder_trainer(model_dir,
 
 
 def get_data_processor(dataloader_generator,
-                       data_processor_type,
                        data_processor_kwargs):
     # compute num_events num_tokens_per_channel
     dataset = dataloader_generator.dataset
@@ -481,31 +435,3 @@ def get_data_processor(dataloader_generator,
                                    num_events=num_events,
                                    num_tokens_per_channel=num_tokens_per_channel)
     return data_processor
-
-    # if data_processor_type == 'bach':
-    #     # compute num_events num_tokens_per_channel
-    #     dataset = dataloader_generator.dataset
-    #     num_events = dataset.sequences_size * dataset.subdivision
-    #     num_tokens_per_channel = [len(d) for d in dataset.index2note_dicts]
-    #     data_processor = BachDataProcessor(embedding_size=data_processor_kwargs['embedding_size'],
-    #                                        num_events=num_events,
-    #                                        num_tokens_per_channel=num_tokens_per_channel)
-    #     return data_processor
-    #
-    # elif data_processor_type == 'bach_cpc':
-    #     # compute num_events num_tokens_per_channel
-    #     dataset = dataloader_generator.dataset_positive
-    #     num_tokens_per_block = dataloader_generator.num_tokens_per_block
-    #     num_channels = dataloader_generator.num_channels
-    #     num_events = dataset.sequences_size * dataset.subdivision
-    #     num_tokens_per_channel = [len(d) for d in dataset.index2note_dicts]
-    #     data_processor = BachCPCDataProcessor(
-    #         embedding_size=data_processor_kwargs['embedding_size'],
-    #         num_events=num_events,
-    #         num_channels=num_channels,
-    #         num_tokens_per_channel=num_tokens_per_channel,
-    #         num_tokens_per_block=num_tokens_per_block)
-    #     assert dataloader_generator.num_channels == data_processor.num_channels
-    #     return data_processor
-    # else:
-    #     raise NotImplementedError

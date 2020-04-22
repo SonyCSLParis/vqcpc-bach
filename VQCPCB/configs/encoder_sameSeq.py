@@ -6,11 +6,10 @@ num_voices = 4
 num_tokens_per_block = num_beats * subdivision * num_voices
 num_block_left = 6
 num_block_right = 6
-sequences_size = num_beats
+sequences_size = num_beats * (num_block_left + num_block_right)
 
 config = {
     'training_method': 'vqcpc',  # vqcpc or student
-    'dataset': 'bach',           # only bach works, but other datasets could be used
 
     # ======== Dataloader ======
     'dataloader_generator_kwargs': dict(num_tokens_per_block=num_tokens_per_block,
@@ -24,7 +23,6 @@ config = {
 
     # ======== Encoder =========
     # --- DataProcessor ---
-    'data_processor_type': 'bach_cpc',
     'data_processor_kwargs': dict(
         embedding_size=32
     ),
@@ -41,7 +39,6 @@ config = {
     # --- Quantizer ---
     'quantizer_type': 'commitment',
     'quantizer_kwargs': dict(
-        num_codebooks=1,
         codebook_size=16,
         codebook_dim=3,
         commitment_cost=0.25,
@@ -73,8 +70,9 @@ config = {
 
     # ======== Training ========
     'lr': 1e-4,
+    'schedule_lr': False,
     'batch_size': 16,
-    'num_batches': 256,
+    'num_batches': 2,
     'num_epochs': 20000,
     'quantizer_regularization': dict(
         corrupt_labels=False

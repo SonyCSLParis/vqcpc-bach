@@ -10,7 +10,6 @@ sequences_size = num_beats * (num_block_right + num_block_left)
 
 config = {
     'training_method': 'vqcpc',  # vqcpc or student
-    'dataset': 'bach',           # only bach works, but other datasets could be used
 
     # ======== Dataloader ======
     'dataloader_generator_kwargs': dict(num_tokens_per_block=num_tokens_per_block,
@@ -24,7 +23,6 @@ config = {
 
     # ======== Encoder =========
     # --- DataProcessor ---
-    'data_processor_type': 'bach_cpc',
     'data_processor_kwargs': dict(
         embedding_size=32
     ),

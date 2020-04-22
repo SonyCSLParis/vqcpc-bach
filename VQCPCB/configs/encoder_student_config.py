@@ -4,8 +4,7 @@ subdivision = 4
 
 config = {
     # ======== Model ===========
-    'training_method':             'Student',  # DCPC or Student
-    'dataset':                     'bach',  # bach or bach_small
+    'training_method':             'student',  # DCPC or Student
 
     # ======== Dataloader ======
     'dataloader_generator_kwargs': dict(
@@ -15,7 +14,6 @@ config = {
 
     # ======== Encoder =========
     # --- DataProcessor ---
-    'data_processor_type':         'bach',  # can be used to filter out some channels
     'data_processor_kwargs':       dict(
         embedding_size=32
     ),
@@ -37,7 +35,6 @@ config = {
     # --- Quantizer ---
     'quantizer_type': 'commitment',
     'quantizer_kwargs': dict(
-        num_codebooks=1,
         codebook_size=32,
         codebook_dim=3,
         commitment_cost=0.25,
@@ -86,8 +83,9 @@ config = {
 
     # ======== Training ========
     'lr': 1e-5,
-    'batch_size': 8,
-    'num_batches': 512,
+    'schedule_lr': False,
+    'batch_size': 2,
+    'num_batches': 2,
     'num_epochs': 20000,
     'quantizer_regularization': dict(
         corrupt_labels=False

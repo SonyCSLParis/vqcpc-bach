@@ -6,9 +6,9 @@ import torch
 from torch import nn
 from tqdm import tqdm
 
-from VQCPCB import vqcpc_helper
+from VQCPCB.vqcpc import vqcpc_helper
 from VQCPCB.encoder import EncoderTrainer
-from VQCPCB.vqcpc_helper import quantization_loss, nce_loss
+from VQCPCB.vqcpc.vqcpc_helper import quantization_loss, nce_loss
 
 
 class VQCPCEncoderTrainer(EncoderTrainer):

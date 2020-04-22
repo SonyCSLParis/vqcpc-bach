@@ -67,7 +67,8 @@ class Encoder(nn.Module):
         if not os.path.exists(model_dir):
             model_dir = self.model_dir
 
-        self.data_processor.load_state_dict(torch.load(f'{model_dir}/data_processor', map_location=torch.device(device)))
+        self.data_processor.load_state_dict(
+            torch.load(f'{model_dir}/data_processor', map_location=torch.device(device)))
         self.downscaler.load_state_dict(torch.load(f'{model_dir}/downscaler', map_location=torch.device(device)))
         self.quantizer.load_state_dict(torch.load(f'{model_dir}/quantizer', map_location=torch.device(device)))
         if self.upscaler:
@@ -109,7 +110,9 @@ class Encoder(nn.Module):
          generator_val,
          generator_test) = dataloader_generator.dataloaders(
             batch_size=batch_size,
-            num_workers=0)
+            num_workers=0,
+            shuffle_train=True,
+            shuffle_val=True)
 
         if split_name == 'train':
             generator = generator_train
@@ -249,7 +252,9 @@ class EncoderTrainer(nn.Module):
              generator_val,
              generator_test) = self.dataloader_generator.dataloaders(
                 batch_size=batch_size,
-                num_workers=num_workers)
+                num_workers=num_workers,
+                shuffle_train=True,
+                shuffle_val=True)
 
             monitored_quantities_train = self.epoch(
                 data_loader=generator_train,

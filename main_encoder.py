@@ -54,7 +54,6 @@ def main(train,
     ######################################################
     # Get model
     dataloader_generator = get_dataloader_generator(
-        dataset=config['dataset'],
         training_method=config['training_method'],
         dataloader_generator_kwargs=config['dataloader_generator_kwargs'],
     )
@@ -99,7 +98,6 @@ def main(train,
     ######################################################
     # Explore clusters
     dataloader_generator_clusters = get_dataloader_generator(
-        dataset=config['dataset'],
         training_method='decoder',
         dataloader_generator_kwargs=config['dataloader_generator_kwargs']
     )
