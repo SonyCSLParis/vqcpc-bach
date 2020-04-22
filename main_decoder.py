@@ -129,7 +129,7 @@ def main(train,
         if code_juxtaposition:
             scores = decoder.generate(
                 temperature=1.0,
-                top_p=0.9,
+                top_p=0.8,
                 top_k=0,
                 batch_size=3,
                 seed_set='val',
@@ -137,7 +137,7 @@ def main(train,
                 code_juxtaposition=True
             )
 
-        scores = decoder.generate(temperature=0.95,
+        scores = decoder.generate(temperature=1.0,
                                   top_p=0.8,
                                   top_k=0,
                                   batch_size=3,
@@ -149,7 +149,7 @@ def main(train,
 
     if reharmonization:
         scores = decoder.generate_reharmonisation(
-            temperature=0.9,
+            temperature=1.0,
             top_p=0.8,
             top_k=0,
             num_reharmonisations=3)
