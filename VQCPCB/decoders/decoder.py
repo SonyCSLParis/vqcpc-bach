@@ -782,14 +782,16 @@ class Decoder(nn.Module):
                         weights = weights_per_voice[channel_index]
                         logits = weights[:, t_relative * self.num_events_per_code + relative_event,
                                  :] / temperature
+
                         # Remove meta symbols
-                        if exclude_meta_symbols:
-                            for sym in [START_SYMBOL, END_SYMBOL, PAD_SYMBOL]:
-                                sym_index = \
-                                    self.dataloader_generator.dataset.note2index_dicts[
-                                        channel_index][
-                                        sym]
-                                logits[:, sym_index] = -float("inf")
+                        # if exclude_meta_symbols:
+                        #     for sym in [START_SYMBOL, END_SYMBOL, PAD_SYMBOL]:
+                        #         sym_index = \
+                        #             self.dataloader_generator.dataset.note2index_dicts[
+                        #                 channel_index][
+                        #                 sym]
+                        #         logits[:, sym_index] = -float("inf")
+
                         # Top-p sampling
                         filtered_logits = []
                         for logit in logits:
@@ -867,6 +869,8 @@ class Decoder(nn.Module):
         print(f'# Chorale BWV\n{list(cl.byBWV.keys())}')
 
         for bwv in cl.byBWV.keys():
+            if bwv != 251:
+                continue
             chorale_m21 = music21.corpus.chorales.getByTitle(cl.byBWV[bwv]['title'])
             x = self.dataloader_generator.dataset.transposed_score_and_metadata_tensors(
                 chorale_m21, semi_tone=0)[0].transpose(1, 0).unsqueeze(0)
