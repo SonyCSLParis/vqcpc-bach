@@ -3,8 +3,8 @@ Gaëtan Hadjeres, Sony CSL, Paris, France (gaetan.hadjeres@sony.com)\
 Léopold Crestel, Sony CSL, Paris, France (leopold.crestel@sony.com)
 
 This is the companion github of the paper 
-[Vector Quantized Contrastive Predictive Coding for Template-based Music Generation](www.google.com).
-See also [https://sonycslparis.github.io/vqcpc-bach/](https://sonycslparis.github.io/vqcpc-bach/) for observeing our results.
+[Vector Quantized Contrastive Predictive Coding for Template-based Music Generation](https://arxiv.org/abs/2004.10120).
+Results are available on our [accompanying website](https://sonycslparis.github.io/vqcpc-bach/).
 
 ## Installation
 To install
