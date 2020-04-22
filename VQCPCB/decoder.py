@@ -556,6 +556,8 @@ class Decoder(nn.Module):
         self.eval()
         (generator_train, generator_val, _) = self.dataloader_generator.dataloaders(
             batch_size=1,
+            num_workers=0,
+            shuffle_train=True,
             shuffle_val=True
         )
 
