@@ -114,7 +114,7 @@ the range of the soprano voice is also captured: the maximal range of
 the soprano part in a given cluster is not greater than a sixth. This
 behaviour can be explained as the soprano voice tends to be more regular
 than the other voices in the particular case of Bach chorales (it is
-often composed of contiguous notes).
+often composed of conjunct notes).
  
 <img class="recimg" src="exemples/clusters/clusters_distill.gif">
 
