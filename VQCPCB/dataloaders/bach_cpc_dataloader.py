@@ -34,7 +34,7 @@ class BachCPCDataloaderGenerator(CPCDataloaderGenerator):
             num_negative_samples)
         # load dataset
         datasets = self._dataset()
-        self.dataset_positive = datasets['positive']
+        self.dataset = datasets['positive']
         self.dataset_negative = datasets['negative']
         self.num_channels = num_voices
 
@@ -119,10 +119,10 @@ class BachCPCDataloaderGenerator(CPCDataloaderGenerator):
         # dataset should be initialized by self._dataset
         # WARNING self.num_negative_samples parameter is not used
         num_negative_samples = self.num_blocks_right + self.num_blocks_left - 1
-        assert self.dataset_positive is not None
+        assert self.dataset is not None
         num_tokens_left = self.num_tokens_per_block * self.num_blocks_left
 
-        dataloaders = self.dataset_positive.data_loaders(
+        dataloaders = self.dataset.data_loaders(
             batch_size=batch_size,
             num_workers=num_workers
         )
@@ -191,10 +191,10 @@ class BachCPCDataloaderGenerator(CPCDataloaderGenerator):
         """
 
         # dataset should be initialized by self._dataset
-        assert self.dataset_positive is not None
+        assert self.dataset is not None
         num_tokens_left = self.num_tokens_per_block * self.num_blocks_left
 
-        positive_dataloaders = self.dataset_positive.data_loaders(
+        positive_dataloaders = self.dataset.data_loaders(
             batch_size=batch_size,
             num_workers=num_workers,
             indexed_dataloaders=False
