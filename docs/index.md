@@ -55,12 +55,12 @@ Our experiments can be reproduced using our [Github repository](https://github.c
 
 The results of our experiments are presented in the following sections
   * [Clusters](#clusters)
-  * [Examples in the paper](#examples-in-the-paper)
+  * [Generating Variations](#examples-in-the-paper)
   * [Variations of a template chorale](#variations-of-a-source-piece)
 
 
 ___
-## Clusters <a id="clusters"></a>
+# Clusters <a id="clusters"></a>
 The encoder simply learns to map subsequences of a time series to a label belonging to a discrete alphabet.
 In other words, **an encoder defines a clustering of the space of subsequences**.
 This clustering is learned in a self-supervised manner, by optimising a contrastive objective.
@@ -77,15 +77,17 @@ More examples can be downloaded here [clusters.zip](exemples/clusters/clusters.z
 
 In our article, we explored three different self-supervised training
 objectives:
-*VQ-CPC* with random negative sampling and
-*VQ-CPC* with same sequence negative sampling which we compare with
-what we termed a Distilled *VQ-VAE* inspired from the [Hierarchical
+*VQ-CPC-Uniform*, where the  negative samples are drawn uniformly from
+the dataset and
+*VQ-CPC-SameSeq*, where the negative samples are drawn from the same
+chorale as the positive samples. We compared these two approaches with 
+what we termed a *Distilled VQ-VAE* inspired from the [Hierarchical
 Autoregressive Image Models with Auxiliary
 Decoders](https://arxiv.org/abs/1903.04933) by De Fauw et al.
 
 Each of them led to a different type of clustering which we display below:
 
-### *VQ-CPC* with random negative sampling
+## Clusters obtained with the *VQ-CPC-Uniform* model
 The negative examples in the contrastive objective are sampled randomly among all chorales.
 Since chorales have been written in all possible key signatures and we used transposition as a data augmentation,
 an easy way to discriminate the positive examples from the negatives is to look at the alterations.
@@ -93,7 +95,7 @@ Hence, the clusters are often composed by elements which can lie in the same or 
 
 <img class="recimg" src="exemples/clusters/clusters_random.gif">
 
-### *VQ-CPC* with same sequence negative sampling
+## Clusters obtained with the *VQ-CPC-SameSeq* model
 The negative examples in the contrastive objective are sampled in the same-sequence as the positive example, 
 but at different locations (either before or after the position of the positive).
 In that case, the contrastive objective is similar to learning to sort the elements of the score in a chronological order.  
@@ -103,7 +105,7 @@ Hence, clusters tend to contain elements which could share similar harmonic func
  
 <img class="recimg" src="exemples/clusters/clusters_sameSeq.gif">
 
-### Clusters obtained with the Distilled *VQ-VAE*
+## Clusters obtained with the *Distilled VQ-VAE* model
 With the Distilled VQ-VAE model, the discrete codes are trained to
 minimize a likelihood-based loss. As a result, the encoder tends to
 focus on capturing the key of the fragments, as was the case with the
@@ -118,7 +120,7 @@ often composed of contiguous notes).
 
 ---
 
-## Generating variations <a id="examples-in-the-paper"></a>
+# Generating variations <a id="examples-in-the-paper"></a>
 When the encoders are trained, we can then train a decoder to
 reconstruct the original chorale given its sequence of codes. Because
 we limited to 16 the total number of different codes, perfect reconstruction
@@ -131,7 +133,7 @@ depend on what information is contained in the codes.
 In the following, we provide variations of a 6-bar template chorale
 for the three different methods we considered.
 
-### *VQ-CPC* with random negative sampling
+## Variations obtained from *VQ-CPC-Uniform* codes
 Example #1:
 <table>
 <tr>
@@ -172,7 +174,7 @@ Example #2:
 
 <br/>
 ---
-### *VQ-CPC* with same sequence negative sampling
+## Variations obtained from *VQ-CPC-SameSeq* codes
 Example #1:
 <table>
 <tr>
@@ -215,7 +217,7 @@ Example #2:
 
 ---
 
-### Distilled *VQ-VAE*
+## Variations obtained from *Distilled VQ-VAE* codes
 Example #1:
 <table>
 <tr>
@@ -255,129 +257,140 @@ src="exemples/variations_distill/Variations_distill_1_train.png">
 </tr>
 </table>
 
-<!-- ___ -->
-<!-- ## Variations of a template chorale <a id="variations-of-a-source-piece"></a> -->
+___
+# Variations of a template chorale <a id="variations-of-a-source-piece"></a>
+We provide additional examples of variations. In this section, we
+generate variations based on a full template chorale by using the
+models from the preceding section with a moving window.
 
-<!-- ### *VQ-CPC* with random negative sampling -->
-<!-- Original: -->
-<!-- <table> -->
-<!-- <tr> -->
-<!-- <td> -->
-<!-- <img class="recimg" src="exemples/variations_random/2020-04-17_07-53-10-1.png"> -->
-<!-- </td> -->
-<!-- </tr> -->
-<!-- <tr> -->
-<!-- <td> -->
-<!-- <center> -->
-<!-- <audio controls> -->
-<!-- <source src="exemples/variations_random/2020-04-17_07-53-10.mp3"> -->
-<!-- </audio> -->
-<!-- </center> -->
-<!-- </td> -->
-<!-- </tr> -->
-<!-- </table> -->
+## Variations of a full chorale with *VQ-CPC-SameSeq*
+Original chorale:
+<center>
+<table>
+<tr>
+<td>
+<img class="recimg"
+src="exemples/reharmonizations_distill/BWV215_original-1.png">
+</td>
+</tr>
+<tr>
+<td>
+<center>
+<audio controls>
+<source src="exemples/reharmonizations_distill/BWV215_original.ogg">
+</audio>
+</center>
+</td>
+</tr>
+</table>
+</center>
 
+Variation #1:
+<center>
+<table>
+<tr>
+<td>
+<img class="recimg"
+src="exemples/reharmonizations_sameseq/BWV251_var_1-1.png">
+</td>
+</tr>
+<tr>
+<td>
+<center>
+<audio controls>
+<source src="exemples/reharmonizations_sameseq/BWV251_var_1.ogg">
+</audio>
+</center>
+</td>
+</tr>
+</table>
+</center>
 
-<!-- <br/> -->
-<!-- Example #2: -->
-<!-- <table> -->
-<!-- <tr> -->
-<!-- <td> -->
-<!-- <img class="recimg" src="exemples/variations_random/2020-04-15_07-59-25-1.png"> -->
-<!-- </td> -->
-<!-- </tr> -->
-<!-- <tr> -->
-<!-- <td> -->
-<!-- <center> -->
-<!-- <audio controls> -->
-<!-- <source src="exemples/variations_random/2020-04-15_07-59-25.mp3"> -->
-<!-- </audio> -->
-<!-- </center> -->
-<!-- </td> -->
-<!-- </tr> -->
-<!-- </table> -->
+<br/>
+Variation #2:
+<center>
+<table>
+<tr>
+<td>
+<img class="recimg"
+src="exemples/reharmonizations_sameseq/BWV251_var_2-1.png">
+</td>
+</tr>
+<tr>
+<td>
+<center>
+<audio controls>
+<source src="exemples/reharmonizations_sameseq/BWV251_var_2.ogg">
+</audio>
+</center>
+</td>
+</tr>
+</table>
+</center>
 
-<!-- <br/> -->
-<!-- --- -->
-<!-- ### *VQ-CPC* with same sequence negative sampling -->
-<!-- Example #1: -->
-<!-- <table> -->
-<!-- <tr> -->
-<!-- <td> -->
-<!-- <img class="recimg" src="exemples/variations_random/2020-04-17_07-53-10-1.png"> -->
+___
 
-<!-- </td> -->
-<!-- </tr> -->
-<!-- <tr> -->
-<!-- <td> -->
-<!-- <center> -->
-<!-- <audio controls> -->
-<!-- <source src="exemples/variations_random/2020-04-17_07-53-10.mp3"> -->
-<!-- </audio> -->
-<!-- </center> -->
-<!-- </td> -->
-<!-- </tr> -->
-<!-- </table> -->
-<!-- <br/> -->
+## Variations of a full chorale with *Distilled VQ-VAE*
+Original chorale:
+<center>
+<table>
+<tr>
+<td>
+<img class="recimg"
+src="exemples/reharmonizations_distill/BWV215_original-1.png">
+</td>
+</tr>
+<tr>
+<td>
+<center>
+<audio controls>
+<source src="exemples/reharmonizations_distill/BWV215_original.ogg">
+</audio>
+</center>
+</td>
+</tr>
+</table>
+</center>
 
-<!-- Example #2: -->
-<!-- <table> -->
-<!-- <tr> -->
-<!-- <td> -->
-<!-- <img class="recimg" src="exemples/variations_random/2020-04-17_07-53-10-1.png"> -->
+Variation #1:
+<center>
+<table>
+<tr>
+<td>
+<img class="recimg"
+src="exemples/reharmonizations_distill/BWV215_student_var1-1.png">
+</td>
+</tr>
+<tr>
+<td>
+<center>
+<audio controls>
+<source src="exemples/reharmonizations_distill/BWV215_student_var1.ogg">
+</audio>
+</center>
+</td>
+</tr>
+</table>
+</center>
 
-<!-- </td> -->
-<!-- </tr> -->
-<!-- <tr> -->
-<!-- <td> -->
-<!-- <center> -->
-<!-- <audio controls> -->
-<!-- <source src="exemples/variations_random/2020-04-17_07-53-10.mp3"> -->
-<!-- </audio> -->
-<!-- </center> -->
-<!-- </td> -->
-<!-- </tr> -->
-<!-- </table> -->
-<!-- <br/> -->
-
-<!-- --- -->
-
-<!-- ### Distilled *VQ-VAE* -->
-<!-- Example #1: -->
-<!-- <table> -->
-<!-- <tr> -->
-<!-- <td> -->
-<!-- <img class="recimg" -->
-<!-- src="exemples/variations_distill/Variations_distill_1_val.png"> -->
-<!-- </td> -->
-<!-- </tr> -->
-<!-- <tr> -->
-<!-- <td> -->
-<!-- <center> -->
-<!-- <audio controls> -->
-<!-- <source src="exemples/variations_distill/Variations_distill_1_val.ogg"> -->
-<!-- </audio> -->
-<!-- </center> -->
-<!-- </td> -->
-<!-- </tr> -->
-<!-- </table> -->
-
-<!-- <br/> -->
-<!-- Example #2: -->
-<!-- <table> -->
-<!-- <tr> -->
-<!-- <td> -->
-<!-- <img class="recimg" -->
-<!-- src="exemples/variations_distill/Variations_distill_1_train.png"> -->
-<!-- </td> -->
-<!-- </tr> -->
-<!-- <tr> -->
-<!-- <td> -->
-<!-- <center> -->
-<!-- <audio controls> -->
-<!-- <source src="exemples/variations_distill/Variations_distill_1_train.ogg"> -->
-<!-- </audio> -->
-<!-- </center> -->
-<!-- </td> -->
-<!-- </tr> -->
-<!-- </table> -->
+<br/>
+Variation #2:
+<center>
+<table>
+<tr>
+<td>
+<img class="recimg"
+src="exemples/reharmonizations_distill/BWV215_student_var2-1.png">
+</td>
+</tr>
+<tr>
+<td>
+<center>
+<audio controls>
+<source src="exemples/reharmonizations_distill/BWV215_student_var2.ogg">
+</audio>
+</center>
+</td>
+</tr>
+</table>
+</center>
