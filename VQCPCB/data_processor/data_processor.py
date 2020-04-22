@@ -44,23 +44,12 @@ class DataProcessor(nn.Module):
         ], dim=-2
         )
 
-    def embed_dict(self, tensor_dict):
-        """
-        to be called after preprocess
-
-        :param tensor_dict: dict of tensors of shape (... num_events, num_channels)
-        :return:
-        """
-        return {
-            k: self.embed(v)
-            for k, v in tensor_dict.items()
-        }
-
     def postprocess(self, original, reconstruction):
         """
         Inverse of preprocess
 
-        :param x: (batch_size, num_events, num_channels) -> ?
+        :param original:
+        :param reconstruction:
         :return:
         """
         if original is not None:
