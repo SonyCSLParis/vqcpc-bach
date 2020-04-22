@@ -16,7 +16,7 @@
 
 This is the companion website of the paper 
 [Vector Quantized Contrastive Predictive Coding for Template-based
-Music Generation](TODO) by Hadjeres and Crestel.
+Music Generation](https://arxiv.org/abs/2004.10120) by Hadjeres and Crestel.
 <br/>
 
 In this paper, we proposed a flexible method for generating variations of discrete sequences 
