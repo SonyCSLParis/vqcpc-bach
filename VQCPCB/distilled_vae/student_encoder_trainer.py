@@ -238,7 +238,7 @@ class StudentEncoderTrainer(EncoderTrainer):
             self.optimizer_teacher.zero_grad()
 
             x = tensor_dict['x']
-            x = self.teacher.data_processor.preprocess(x)
+            x = cuda_variable(x.long())
 
             forward_pass_teacher = self.forward_teacher(x)
 
@@ -252,7 +252,6 @@ class StudentEncoderTrainer(EncoderTrainer):
                 self.optimizer_teacher.step()
             if train and (self.scheduler_teacher is not None):
                 self.scheduler_teacher.step()
-
 
             # ========Train encoder-decoder =============
             self.optimizer_enc_dec.zero_grad()
