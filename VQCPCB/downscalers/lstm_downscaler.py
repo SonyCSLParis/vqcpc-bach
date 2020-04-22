@@ -3,7 +3,6 @@ import torch
 from torch import nn
 
 from VQCPCB.downscalers.downscaler import Downscaler
-from VQCPCB.utils import flatten
 
 
 class LstmDownscaler(Downscaler):
@@ -61,7 +60,7 @@ class LstmDownscaler(Downscaler):
         with seq = num_blocks * block_size
         :return: z: (batch,
         """
-        # split in cpc blocks
+        #  split in cpc blocks
         batch_size, seq_len, dim = inputs.shape
         num_blocks = seq_len // self.downscale_factors[0]
         assert seq_len % self.downscale_factors[0] == 0
@@ -79,7 +78,7 @@ class LstmDownscaler(Downscaler):
         z_seq_fwd, _ = self.g_enc_fwd(x)
         z_last_fwd = z_seq_fwd[:, -1]
 
-        # backward if bidirectional
+        #  backward if bidirectional
         if self.g_enc_bwd is not None:
             z_seq_bwd, _ = self.g_enc_bwd(x.flip(dims=[1]))
             z_last_bwd = z_seq_bwd[:, -1]

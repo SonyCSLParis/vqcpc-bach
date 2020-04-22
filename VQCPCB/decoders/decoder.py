@@ -784,13 +784,13 @@ class Decoder(nn.Module):
                                  :] / temperature
 
                         # Remove meta symbols
-                        # if exclude_meta_symbols:
-                        #     for sym in [START_SYMBOL, END_SYMBOL, PAD_SYMBOL]:
-                        #         sym_index = \
-                        #             self.dataloader_generator.dataset.note2index_dicts[
-                        #                 channel_index][
-                        #                 sym]
-                        #         logits[:, sym_index] = -float("inf")
+                        if exclude_meta_symbols:
+                            for sym in [START_SYMBOL, END_SYMBOL, PAD_SYMBOL]:
+                                sym_index = \
+                                    self.dataloader_generator.dataset.note2index_dicts[
+                                        channel_index][
+                                        sym]
+                                logits[:, sym_index] = -float("inf")
 
                         # Top-p sampling
                         filtered_logits = []
@@ -816,8 +816,7 @@ class Decoder(nn.Module):
                             ), p=p[batch_index])
                             chorale[batch_index,
                                     code_index * self.num_events_per_code + relative_event,
-                                    channel_index] = int(
-                                new_pitch_index)
+                                    channel_index] = int(new_pitch_index)
 
         # slice
         chorale = chorale[:, num_events_before_start:num_events_before_end]
@@ -845,7 +844,7 @@ class Decoder(nn.Module):
             elif t >= num_blocks - num_blocks_model // 2:
                 t_relative = num_blocks_model - (num_blocks - t)
             else:
-                NotImplementedError
+                raise Exception
 
         # choose proper block to use
         t_begin = min(max(0, t - num_blocks_model // 2), num_blocks - num_blocks_model)
