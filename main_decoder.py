@@ -61,7 +61,7 @@ def main(train,
     config_encoder_path = config['config_encoder']
     if config_encoder_path is None:
         # Load any encoder w/ 16 code
-        config_encoder_path = 'VQCPCB/configs/encoder_random_16C.py'
+        config_encoder_path = 'VQCPCB/configs/encoder_random.py'
     config_encoder_module_name = os.path.splitext(config_encoder_path)[0].replace('/', '.')
     config_encoder = importlib.import_module(config_encoder_module_name).config
     config_encoder['quantizer_kwargs']['initialize'] = False
@@ -127,7 +127,7 @@ def main(train,
             num_workers=num_workers
         )
 
-    num_examples = 0
+    num_examples = 3
     for _ in range(num_examples):
         if code_juxtaposition:
             scores = decoder.generate(

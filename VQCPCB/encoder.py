@@ -5,7 +5,7 @@ import torch
 from torch import nn
 from torch.utils.tensorboard import SummaryWriter
 import numpy as np
-from VQCPCB.utils import dict_pretty_print, flatten
+from VQCPCB.utils import dict_pretty_print, flatten, cuda_variable
 import matplotlib.pyplot as plt
 
 
@@ -80,9 +80,10 @@ class Encoder(nn.Module):
         :param corrupt_labels: if true, assign with probability 5% a different label than the computed centroid
         :return: z_quantized, encoding_indices, quantization_loss
         """
-        x_proc = self.data_processor.preprocess(x)
+        x_proc = cuda_variable(x.long())
         x_embed = self.data_processor.embed(x_proc)
         x_flat = flatten(x_embed)
+        # [32, 31, 33, 46]
         z = self.downscaler.forward(x_flat)
         z_quantized, encoding_indices, quantization_loss = self.quantizer.forward(
             z,
@@ -93,21 +94,6 @@ class Encoder(nn.Module):
             z_quantized = self.upscaler(z_quantized)
 
         return z_quantized, encoding_indices, quantization_loss
-
-    def merge_codes(self, codes):
-        """
-        Merge the codes of a stack.
-        Different
-        :param codes:
-        :return:
-        """
-        batch_dim, seq_len, num_codebooks = codes.shape
-        if num_codebooks == 1:
-            return codes[:, :, 0]
-        ret = codes[:, :, 0]
-        for encoder_index in range(1, num_codebooks):
-            ret += codes[:, :, encoder_index] * (self.quantizer.codebook_size ** encoder_index)
-        return ret
 
     def plot_clusters(self, dataloader_generator, split_name, batch_size=32, num_batches=64):
         """
