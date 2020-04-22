@@ -219,7 +219,7 @@ class Decoder(nn.Module):
         elif self.transformer_type == 'absolute':
             source_embedding_dim = self.d_model - positional_embedding_size
         if not type(self.encoder.quantizer).__name__ == 'NoQuantization':
-            codebook_size = self.encoder.quantizer.codebook_size ** self.encoder.quantizer.num_codebooks
+            codebook_size = self.encoder.quantizer.codebook_size
             self.source_embeddings = nn.Embedding(
                 codebook_size, source_embedding_dim
             )
@@ -386,7 +386,9 @@ class Decoder(nn.Module):
              generator_val,
              generator_test) = self.dataloader_generator.dataloaders(
                 batch_size=batch_size,
-                num_workers=num_workers)
+                num_workers=num_workers,
+                shuffle_train=True,
+                shuffle_val=True)
 
             monitored_quantities_train = self.epoch(
                 data_loader=generator_train,
@@ -432,7 +434,7 @@ class Decoder(nn.Module):
         # embed
         source_seq = self.source_embeddings(source)
 
-        target = self.data_processor.preprocess(target)
+        target = cuda_variable(target.long())
         target_embedded = self.data_processor.embed(target)
         target_seq = flatten(target_embedded)
 
@@ -893,7 +895,7 @@ class Decoder(nn.Module):
             completion_length = self.data_processor.num_events - last_chunk.size(1)
             if completion_length > 1:
                 pad_completion_chunk = torch.Tensor(PAD).unsqueeze(0).unsqueeze(0).repeat(
-                    1, completion_length-1, 1
+                    1, completion_length - 1, 1
                 ).long()
                 last_chunk = torch.cat([last_chunk, end_chunk_, pad_completion_chunk], 1)
                 end_chunk = pad_only_chunk
