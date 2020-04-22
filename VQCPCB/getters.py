@@ -2,8 +2,6 @@ import numpy as np
 
 from VQCPCB.auxiliary_decoders.auxiliary_decoder import AuxiliaryDecoder
 from VQCPCB.auxiliary_decoders.auxiliary_decoder_relative import AuxiliaryDecoderRelative
-from VQCPCB.data_processor.bach_cpc_data_processor import BachCPCDataProcessor
-from VQCPCB.data_processor.bach_data_processor import BachDataProcessor
 from VQCPCB.data_processor.data_processor import DataProcessor
 from VQCPCB.dataloaders.bach_cpc_dataloader import BachCPCDataloaderGenerator
 from VQCPCB.dataloaders.bach_dataloader import BachDataloaderGenerator
@@ -83,17 +81,6 @@ def get_downscaler(downscaler_type,
             dropout=downscaler_kwargs['dropout'],
             bidirectional=downscaler_kwargs['bidirectional']
         )
-    elif downscaler_type == 'mlp_downscaler':
-        return MlpDownscaler(
-            input_dim=downscaler_kwargs['input_dim'],
-            output_dim=downscaler_kwargs['output_dim'],
-            downscale_factors=downscaler_kwargs['downscale_factors'],
-            # additional params
-            hidden_size=downscaler_kwargs['hidden_size'],
-            num_layers=downscaler_kwargs['num_layers'],
-            dropout=downscaler_kwargs['dropout'],
-        )
-
     else:
         raise NotImplementedError
 
@@ -486,30 +473,39 @@ def get_encoder_trainer(model_dir,
 def get_data_processor(dataloader_generator,
                        data_processor_type,
                        data_processor_kwargs):
-    if data_processor_type == 'bach':
-        # compute num_events num_tokens_per_channel
-        dataset = dataloader_generator.dataset
-        num_events = dataset.sequences_size * dataset.subdivision
-        num_tokens_per_channel = [len(d) for d in dataset.index2note_dicts]
-        data_processor = BachDataProcessor(embedding_size=data_processor_kwargs['embedding_size'],
-                                           num_events=num_events,
-                                           num_tokens_per_channel=num_tokens_per_channel)
-        return data_processor
+    # compute num_events num_tokens_per_channel
+    dataset = dataloader_generator.dataset
+    num_events = dataset.sequences_size * dataset.subdivision
+    num_tokens_per_channel = [len(d) for d in dataset.index2note_dicts]
+    data_processor = DataProcessor(embedding_size=data_processor_kwargs['embedding_size'],
+                                   num_events=num_events,
+                                   num_tokens_per_channel=num_tokens_per_channel)
+    return data_processor
 
-    elif data_processor_type == 'bach_cpc':
-        # compute num_events num_tokens_per_channel
-        dataset = dataloader_generator.dataset_positive
-        num_tokens_per_block = dataloader_generator.num_tokens_per_block
-        num_channels = dataloader_generator.num_channels
-        num_events = dataset.sequences_size * dataset.subdivision
-        num_tokens_per_channel = [len(d) for d in dataset.index2note_dicts]
-        data_processor = BachCPCDataProcessor(
-            embedding_size=data_processor_kwargs['embedding_size'],
-            num_events=num_events,
-            num_channels=num_channels,
-            num_tokens_per_channel=num_tokens_per_channel,
-            num_tokens_per_block=num_tokens_per_block)
-        assert dataloader_generator.num_channels == data_processor.num_channels
-        return data_processor
-    else:
-        raise NotImplementedError
+    # if data_processor_type == 'bach':
+    #     # compute num_events num_tokens_per_channel
+    #     dataset = dataloader_generator.dataset
+    #     num_events = dataset.sequences_size * dataset.subdivision
+    #     num_tokens_per_channel = [len(d) for d in dataset.index2note_dicts]
+    #     data_processor = BachDataProcessor(embedding_size=data_processor_kwargs['embedding_size'],
+    #                                        num_events=num_events,
+    #                                        num_tokens_per_channel=num_tokens_per_channel)
+    #     return data_processor
+    #
+    # elif data_processor_type == 'bach_cpc':
+    #     # compute num_events num_tokens_per_channel
+    #     dataset = dataloader_generator.dataset_positive
+    #     num_tokens_per_block = dataloader_generator.num_tokens_per_block
+    #     num_channels = dataloader_generator.num_channels
+    #     num_events = dataset.sequences_size * dataset.subdivision
+    #     num_tokens_per_channel = [len(d) for d in dataset.index2note_dicts]
+    #     data_processor = BachCPCDataProcessor(
+    #         embedding_size=data_processor_kwargs['embedding_size'],
+    #         num_events=num_events,
+    #         num_channels=num_channels,
+    #         num_tokens_per_channel=num_tokens_per_channel,
+    #         num_tokens_per_block=num_tokens_per_block)
+    #     assert dataloader_generator.num_channels == data_processor.num_channels
+    #     return data_processor
+    # else:
+    #     raise NotImplementedError
