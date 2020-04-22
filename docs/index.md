@@ -24,7 +24,7 @@ in which tokens can be grouped into basic units, like sentences in a text or bar
 More precisely, given a template sequence, we aim at producing novel sequences sharing perceptible similarities 
 with the original template without relying on any annotation. The
 novelty of our approach is to cast the problem of generating
-variations as a problem representation learning.
+variations as a representation learning problem.
 
 We introduce 
  - a *self-supervised encoding* technique, named *Vector-Quantized Contrastive Predictive Coding* (*VQ-CPC*), 
@@ -255,64 +255,129 @@ src="exemples/variations_distill/Variations_distill_1_train.png">
 </tr>
 </table>
 
-___
-## Variations of a template chorale <a id="variations-of-a-source-piece"></a>
-<table>
-<caption><b> Source </b></caption>
-  <tr>
-    <td style="text-align: center; vertical-align: middle;"><b>Score</b></td>
-    <td style="text-align: center; vertical-align: middle;"><b>Audio Rendering</b></td>
-  </tr>
-  
-  <tr>
-    <td><img class="recimg" src="https://anonymous0505.github.io/VQCPC/figures/..."></td>
-    <td style="text-align: center; vertical-align: middle;">
-      <audio controls>
-      <source src="https://anonymous0505.github.io/VQCPC/sounds/...">
-      </audio>
-    </td>
-  </tr>
-</table>
+<!-- ___ -->
+<!-- ## Variations of a template chorale <a id="variations-of-a-source-piece"></a> -->
+
+<!-- ### *VQ-CPC* with random negative sampling -->
+<!-- Original: -->
+<!-- <table> -->
+<!-- <tr> -->
+<!-- <td> -->
+<!-- <img class="recimg" src="exemples/variations_random/2020-04-17_07-53-10-1.png"> -->
+<!-- </td> -->
+<!-- </tr> -->
+<!-- <tr> -->
+<!-- <td> -->
+<!-- <center> -->
+<!-- <audio controls> -->
+<!-- <source src="exemples/variations_random/2020-04-17_07-53-10.mp3"> -->
+<!-- </audio> -->
+<!-- </center> -->
+<!-- </td> -->
+<!-- </tr> -->
+<!-- </table> -->
 
 
-<table>
-<caption><b> Variations with method 1 </b></caption>
-  <tr>
-    <td style="text-align: center; vertical-align: middle;"><b>Score</b></td>
-    <td style="text-align: center; vertical-align: middle;"><b>Audio Rendering</b></td>
-  </tr>
-  
-  <tr>
-    <td><img class="recimg" src="https://anonymous0505.github.io/VQCPC/figures/..."></td>
-    <td style="text-align: center; vertical-align: middle;">
-      <audio controls>
-      <source src="https://anonymous0505.github.io/VQCPC/sounds/...">
-      </audio>
-    </td>
-  </tr>
-  
-  <tr>
-    <td><img class="recimg" src="https://anonymous0505.github.io/VQCPC/figures/..."></td>
-    <td style="text-align: center; vertical-align: middle;">
-      <audio controls>
-      <source src="https://anonymous0505.github.io/VQCPC/sounds/...">
-      </audio>
-    </td>
-  </tr>
+<!-- <br/> -->
+<!-- Example #2: -->
+<!-- <table> -->
+<!-- <tr> -->
+<!-- <td> -->
+<!-- <img class="recimg" src="exemples/variations_random/2020-04-15_07-59-25-1.png"> -->
+<!-- </td> -->
+<!-- </tr> -->
+<!-- <tr> -->
+<!-- <td> -->
+<!-- <center> -->
+<!-- <audio controls> -->
+<!-- <source src="exemples/variations_random/2020-04-15_07-59-25.mp3"> -->
+<!-- </audio> -->
+<!-- </center> -->
+<!-- </td> -->
+<!-- </tr> -->
+<!-- </table> -->
 
-  <tr>
-    <td><img class="recimg" src="https://anonymous0505.github.io/VQCPC/figures/..."></td>
-    <td style="text-align: center; vertical-align: middle;">
-      <audio controls>
-      <source src="https://anonymous0505.github.io/VQCPC/sounds/...">
-      </audio>
-    </td>
-  </tr>
-</table>
+<!-- <br/> -->
+<!-- --- -->
+<!-- ### *VQ-CPC* with same sequence negative sampling -->
+<!-- Example #1: -->
+<!-- <table> -->
+<!-- <tr> -->
+<!-- <td> -->
+<!-- <img class="recimg" src="exemples/variations_random/2020-04-17_07-53-10-1.png"> -->
 
-++ EXEMPLE WITH A RANDOM ENCODER
+<!-- </td> -->
+<!-- </tr> -->
+<!-- <tr> -->
+<!-- <td> -->
+<!-- <center> -->
+<!-- <audio controls> -->
+<!-- <source src="exemples/variations_random/2020-04-17_07-53-10.mp3"> -->
+<!-- </audio> -->
+<!-- </center> -->
+<!-- </td> -->
+<!-- </tr> -->
+<!-- </table> -->
+<!-- <br/> -->
 
-## Codes juxtaposition ??
-Beginning from one score, end with another
+<!-- Example #2: -->
+<!-- <table> -->
+<!-- <tr> -->
+<!-- <td> -->
+<!-- <img class="recimg" src="exemples/variations_random/2020-04-17_07-53-10-1.png"> -->
 
+<!-- </td> -->
+<!-- </tr> -->
+<!-- <tr> -->
+<!-- <td> -->
+<!-- <center> -->
+<!-- <audio controls> -->
+<!-- <source src="exemples/variations_random/2020-04-17_07-53-10.mp3"> -->
+<!-- </audio> -->
+<!-- </center> -->
+<!-- </td> -->
+<!-- </tr> -->
+<!-- </table> -->
+<!-- <br/> -->
 
+<!-- --- -->
+
+<!-- ### Distilled *VQ-VAE* -->
+<!-- Example #1: -->
+<!-- <table> -->
+<!-- <tr> -->
+<!-- <td> -->
+<!-- <img class="recimg" -->
+<!-- src="exemples/variations_distill/Variations_distill_1_val.png"> -->
+<!-- </td> -->
+<!-- </tr> -->
+<!-- <tr> -->
+<!-- <td> -->
+<!-- <center> -->
+<!-- <audio controls> -->
+<!-- <source src="exemples/variations_distill/Variations_distill_1_val.ogg"> -->
+<!-- </audio> -->
+<!-- </center> -->
+<!-- </td> -->
+<!-- </tr> -->
+<!-- </table> -->
+
+<!-- <br/> -->
+<!-- Example #2: -->
+<!-- <table> -->
+<!-- <tr> -->
+<!-- <td> -->
+<!-- <img class="recimg" -->
+<!-- src="exemples/variations_distill/Variations_distill_1_train.png"> -->
+<!-- </td> -->
+<!-- </tr> -->
+<!-- <tr> -->
+<!-- <td> -->
+<!-- <center> -->
+<!-- <audio controls> -->
+<!-- <source src="exemples/variations_distill/Variations_distill_1_train.ogg"> -->
+<!-- </audio> -->
+<!-- </center> -->
+<!-- </td> -->
+<!-- </tr> -->
+<!-- </table> -->
