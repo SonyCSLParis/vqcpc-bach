@@ -349,6 +349,6 @@ class VQCPCEncoderTrainer(EncoderTrainer):
 
         means['accuracy'] = list(means['accuracy'])
         #  Use mean accuracy as monitor loss
-        means['loss_monitor'] = - sum(means['accuracy']) / len(means['accuracy'])
+        means['loss_monitor'] = means['loss_contrastive']
 
         return means
