@@ -17,10 +17,12 @@ from VQCPCB.getters import get_dataloader_generator, get_encoder, get_encoder_tr
 @click.option('-t', '--train', is_flag=True)
 @click.option('-l', '--load', is_flag=True)
 @click.option('-c', '--config', type=click.Path(exists=True))
+@click.option('--earlyStopped', is_flag=True)
 @click.option('--num_workers', type=int, default=0)
 def main(train,
          load,
          num_workers,
+         earlyStopped,
          config,
          ):
     # Use all gpus available
@@ -72,7 +74,10 @@ def main(train,
     )
 
     if load:
-        encoder_trainer.load(early_stopped=False, device=device)
+        if earlyStopped:
+            encoder_trainer.load(early_stopped=True, device=device)
+        else:
+            encoder_trainer.load(early_stopped=False, device=device)
 
     encoder_trainer.to(device)
 
