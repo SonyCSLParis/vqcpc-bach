@@ -734,7 +734,9 @@ class Decoder(nn.Module):
         size_encoding = encoding_indices.size(1)
 
         total_upscaling = int(np.prod(self.encoder.downscaler.downscale_factors))
-        num_tokens_indices = self.data_processor.num_tokens // total_upscaling
+        win_size_codes = self.data_processor.num_tokens // total_upscaling
+        assert win_size_codes % 4 == 0
+        hop_size_codes = win_size_codes // 4
 
         num_events_full_chorale = size_encoding * total_upscaling // self.data_processor.num_channels
         num_events_before_start = code_index_start * total_upscaling // self.num_channels
@@ -758,18 +760,20 @@ class Decoder(nn.Module):
                 for relative_event in range(self.num_events_per_code):
                     for channel_index in range(self.data_processor.num_channels):
                         ####################################
-                        # Get time indices
-                        t_begin, t_end, t_relative = self.compute_start_end_times(
-                            code_index, num_blocks=size_encoding,
-                            num_blocks_model=num_tokens_indices
-                        )
+                        # Codes indices for extracting the inputs
+                        middle_code_ind_segment = (code_index // hop_size_codes) * hop_size_codes
+                        start_code_ind_segment = middle_code_ind_segment - win_size_codes // 2
+                        end_code_ind_segment = middle_code_ind_segment + win_size_codes // 2
+                        event_start_segment = start_code_ind_segment * self.num_events_per_code
+                        event_end_segment = end_code_ind_segment * self.num_events_per_code
+
+                        # Where do we sample in this segment
+                        event_sample = (code_index - start_code_ind_segment) * self.num_events_per_code + relative_event
 
                         ####################################
-                        # Prepare network inputs
-                        input_encoding_indices = encoding_indices[:, t_begin:t_end]
-                        input_chorale = chorale[:,
-                                        t_begin * self.num_events_per_code: t_end * self.num_events_per_code,
-                                        :]
+                        # Prepare network inputs (segments)
+                        input_encoding_indices = encoding_indices[:, start_code_ind_segment:end_code_ind_segment]
+                        input_chorale = chorale[:, event_start_segment: event_end_segment, :]
 
                         ####################################
                         # Forward pass in decoder
@@ -777,8 +781,7 @@ class Decoder(nn.Module):
                                                          input_chorale)['weights_per_category']
                         # Keep only the last token predictions of the first batch item (batch size 1)
                         weights = weights_per_voice[channel_index]
-                        logits = weights[:, t_relative * self.num_events_per_code + relative_event,
-                                 :] / temperature
+                        logits = weights[:, event_sample, :] / temperature
 
                         ####################################
                         # Remove meta symbols
