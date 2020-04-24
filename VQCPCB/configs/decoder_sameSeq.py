@@ -2,7 +2,7 @@ from pathlib import Path
 
 
 config = {
-    'config_encoder':              'models/encoder_sameSeq_2020-04-22_18-06-21/config.py',
+    'config_encoder':              'models/encoder_sameSeq_2020-04-23_15-46-46/config.py',
     'training_method':             'decoder',
 
     # --- Dataloader ---
@@ -30,8 +30,8 @@ config = {
     # ======== Training ========
     'lr':                          1e-4,
     'schedule_lr':                 True,
-    'batch_size':                  4,
-    'num_batches':                 2,
+    'batch_size':                  64,
+    'num_batches':                 1024,
     'num_epochs':                  20000,
 
     # ======== model ID ========
