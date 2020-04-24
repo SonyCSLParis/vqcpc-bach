@@ -16,6 +16,8 @@ from VQCPCB.getters import get_dataloader_generator, get_encoder, get_decoder, g
 @click.command()
 @click.option('-t', '--train', is_flag=True)
 @click.option('-l', '--load', is_flag=True)
+@click.option('-oe', '--overfitted_encoder', is_flag=True,
+              help='Load over-fitted weights for the encoder')
 @click.option('-o', '--overfitted', is_flag=True,
               help='Load over-fitted weights for the decoder instead of early-stopped.'
                    'Only used with -l')
@@ -25,6 +27,7 @@ from VQCPCB.getters import get_dataloader_generator, get_encoder, get_decoder, g
 @click.option('-n', '--num_workers', type=int, default=0)
 def main(train,
          load,
+         overfitted_encoder,
          overfitted,
          config,
          reharmonization,
@@ -78,7 +81,10 @@ def main(train,
                           config=config_encoder
                           )
     if config['config_encoder'] is not None:
-        encoder.load(early_stopped=False, device=device)
+        if overfitted_encoder:
+            encoder.load(early_stopped=False, device=device)
+        else:
+            encoder.load(early_stopped=True, device=device)
 
     # === Decoder ====
     dataloader_generator = get_dataloader_generator(

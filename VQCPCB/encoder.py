@@ -166,7 +166,7 @@ class Encoder(nn.Module):
 
     def show_nn_clusters(self, k=3):
         self.eval()
-        clusters = self.quantizer.embeddings._parameters['0'].data.cpu()
+        clusters = self.quantizer.embedding.data.cpu()
         dists = torch.norm(clusters[None, :, :] - clusters[:, None, :], p=2, dim=2)
         print('Nearest neighbours list:')
         for i in range(dists.size(0)):
