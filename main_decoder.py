@@ -130,7 +130,7 @@ def main(train,
             num_workers=num_workers
         )
 
-    num_examples = 3
+    num_examples = 0
     for _ in range(num_examples):
         if code_juxtaposition:
             scores = decoder.generate(
@@ -155,8 +155,8 @@ def main(train,
 
     if reharmonization:
         scores = decoder.generate_reharmonisation(
-            temperature=1.0,
-            top_p=0.8,
+            temperature=0.9,
+            top_p=0.95,
             top_k=0,
             num_reharmonisations=3)
     # for score in scores:
