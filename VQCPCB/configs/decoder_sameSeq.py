@@ -16,7 +16,7 @@ config = {
     ),  # Can be different from the encoder's data processor
 
     # --- Decoder ---
-    'decoder_type':                'transformer_relative_diagonal',
+    'decoder_type':                'tra nsformer_relative_diagonal',
     # See get_decoder in VQCPCB/getters.py to see the different types of transformers
     'decoder_kwargs':              dict(
         d_model=512,
