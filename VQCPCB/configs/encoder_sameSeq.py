@@ -39,7 +39,7 @@ config = {
     # --- Quantizer ---
     'quantizer_type': 'commitment',
     'quantizer_kwargs': dict(
-        codebook_size=16,
+        codebook_size=32,
         codebook_dim=3,
         commitment_cost=0.25,
         use_batch_norm=False,
@@ -71,8 +71,8 @@ config = {
     # ======== Training ========
     'lr': 1e-4,
     'schedule_lr': False,
-    'batch_size': 16,
-    'num_batches': 2,
+    'batch_size': 32,
+    'num_batches': 512,
     'num_epochs': 20000,
     'quantizer_regularization': dict(
         corrupt_labels=False
