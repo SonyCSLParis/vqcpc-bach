@@ -1,8 +1,9 @@
 from pathlib import Path
 
 
+
 config = {
-    'config_encoder':              'models/encoder_sameSeq_2020-04-23_15-46-46/config.py',
+    'config_encoder':              'models/encoder_sameSeq_2020-04-27_08-08-38/config.py',
     'training_method':             'decoder',
 
     # --- Dataloader ---
@@ -16,7 +17,7 @@ config = {
     ),  # Can be different from the encoder's data processor
 
     # --- Decoder ---
-    'decoder_type':                'tra nsformer_relative_diagonal',
+    'decoder_type':                'transformer_relative_diagonal',
     # See get_decoder in VQCPCB/getters.py to see the different types of transformers
     'decoder_kwargs':              dict(
         d_model=512,
@@ -30,7 +31,7 @@ config = {
     # ======== Training ========
     'lr':                          1e-4,
     'schedule_lr':                 True,
-    'batch_size':                  64,
+    'batch_size':                  32,
     'num_batches':                 1024,
     'num_epochs':                  20000,
 
@@ -38,4 +39,3 @@ config = {
     'timestamp':                   None,
     'savename':                    Path(__file__).stem,
 }
-
