@@ -90,7 +90,7 @@ class ProductVectorQuantizer(VectorQuantizer):
 
         # Calculate distances
         distances = (torch.sum(flat_input ** 2, dim=1, keepdim=True)
-                     + torch.sum(self.embedding ** 2, dim=1)
+                     + torch.sum(self.embedding ** 2, dim=1).unsqueeze(0)
                      - 2 * torch.matmul(flat_input, self.embedding.t()))
 
         # Encoding
