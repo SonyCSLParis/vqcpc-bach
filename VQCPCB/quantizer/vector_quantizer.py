@@ -102,9 +102,10 @@ class ProductVectorQuantizer(VectorQuantizer):
             self._initialize(flat_input=flat_input)
 
         # Calculate distances
-        distances = [(torch.sum(input_component ** 2, dim=1, keepdim=True)
-                      + torch.sum(embedding ** 2, dim=1)
-                      - 2 * torch.matmul(input_component, embedding.t()))
+        distances = [
+            torch.sum(
+            (input_component.unsqueeze(0) - embedding.unsqueeze(1)) ** 2,
+                dim=2)
                      for input_component, embedding
                      in zip(
                 flat_input.chunk(chunks=self.num_codebooks, dim=1),
