@@ -104,7 +104,7 @@ class ProductVectorQuantizer(VectorQuantizer):
         # Calculate distances
         distances = [
             torch.sum(
-            (input_component.unsqueeze(0) - embedding.unsqueeze(1)) ** 2,
+            (input_component.unsqueeze(1) - embedding.unsqueeze(0)) ** 2,
                 dim=2)
                      for input_component, embedding
                      in zip(
