@@ -92,7 +92,7 @@ class MultiheadAttentionCustom(nn.Module):
         elif attention_bias_type in ['relative_attention_target_source', 'relative_attention']:
             seq_len_src = num_channels_k * num_events_k
             seq_len_tgt = num_channels_q * num_events_q
-            assert seq_len_tgt % seq_len_tgt == 0
+            assert seq_len_tgt % seq_len_src == 0
             self.attn_bias = SubsampledRelativeAttention(
                 head_dim=self.head_dim,
                 num_heads=num_heads,
