@@ -1,10 +1,14 @@
+import itertools
 import os
 import random
 
+import music21
 import torch
 from torch import nn
 from torch.utils.tensorboard import SummaryWriter
 import numpy as np
+
+from VQCPCB.data.chorale_dataset import START_SYMBOL, REST_SYMBOL, PAD_SYMBOL, END_SYMBOL, SLUR_SYMBOL
 from VQCPCB.utils import dict_pretty_print, flatten, cuda_variable
 import matplotlib.pyplot as plt
 
@@ -84,7 +88,6 @@ class Encoder(nn.Module):
         x_proc = cuda_variable(x.long())
         x_embed = self.data_processor.embed(x_proc)
         x_flat = flatten(x_embed)
-        # [32, 31, 33, 46]
         z = self.downscaler.forward(x_flat)
         z_quantized, encoding_indices, quantization_loss = self.quantizer.forward(
             z,
@@ -123,6 +126,11 @@ class Encoder(nn.Module):
         else:
             raise ValueError(f'{split_name} is not a valid split value. Choose between train, val or test')
 
+        cluster_stats = {
+            'pitch_classes': {},
+            'number_notes': {}
+        }
+
         self.eval()
         d = {}
         for k, tensor_dict in enumerate(generator):
@@ -144,6 +152,31 @@ class Encoder(nn.Module):
                             d[cluster_index] = []
                         d[cluster_index].append(corresponding_x)
 
+                        # Statistics
+                        if cluster_index not in cluster_stats['pitch_classes']:
+                            cluster_stats['pitch_classes'][cluster_index] = {}
+                            cluster_stats['number_notes'][cluster_index] = {}
+                        # Count pitches per voice
+                        time_dim, voice_dim = corresponding_x.shape
+                        number_notes = 0
+                        for time_ind, voice_ind in itertools.product(range(time_dim), range(voice_dim)):
+                            value = int(corresponding_x[time_ind, voice_ind])
+                            pitch_name = dataloader_generator.dataset.index2note_dicts[voice_ind][value]
+                            if pitch_name not in [START_SYMBOL, END_SYMBOL, PAD_SYMBOL, REST_SYMBOL, SLUR_SYMBOL]:
+                                number_notes += 1
+                                try:
+                                    pitch_class = music21.pitch.Pitch(pitch_name).name
+                                except:
+                                    print('yo')
+                                if pitch_class not in cluster_stats['pitch_classes'][cluster_index]:
+                                    cluster_stats['pitch_classes'][cluster_index][pitch_class] = 1
+                                else:
+                                    cluster_stats['pitch_classes'][cluster_index][pitch_class] += 1
+                        if number_notes not in cluster_stats['number_notes'][cluster_index]:
+                            cluster_stats['number_notes'][cluster_index][number_notes] = 1
+                        else:
+                            cluster_stats['number_notes'][cluster_index][number_notes] += 1
+
                 if k > num_batches:
                     break
 
@@ -162,6 +195,53 @@ class Encoder(nn.Module):
             tensor_score = self.data_processor.postprocess(original=None,
                                                            reconstruction=list_elements)
             dataloader_generator.write(tensor_score, save_path)
+
+        # BAR PLOTS
+        pitch_class_order = [
+            'F--', 'C--', 'G--', 'D--', 'A--', 'E--', 'B--',
+            'F-', 'C-', 'G-', 'D-', 'A-', 'E-', 'B-',
+            'F', 'C', 'G', 'D', 'A', 'E', 'B',
+            'F#', 'C#', 'G#', 'D#', 'A#', 'E#', 'B#',
+            'F##', 'C##', 'G##', 'D##', 'A##', 'E##', 'B##',
+        ]
+        num_clusters = len(cluster_stats['pitch_classes'])
+        fig, axs = plt.subplots(1, num_clusters, sharey=True)
+        # Remove horizontal space between axes
+        fig.subplots_adjust(wspace=0)
+        for cluster_index in sorted(cluster_stats['pitch_classes'].keys()):
+            pitch_classes = cluster_stats['pitch_classes'][cluster_index]
+            y = []
+            for pitch_class_number, pitch_class in enumerate(pitch_class_order):
+                if pitch_class in pitch_classes:
+                    num_occurences = pitch_classes[pitch_class]
+                    y.append(num_occurences)
+                else:
+                    y.append(0)
+            axs[cluster_index].barh(np.arange(len(pitch_class_order)), y)
+            axs[cluster_index].set_xticks([])
+        plt.yticks(np.arange(len(pitch_class_order)), pitch_class_order)
+        plt.savefig(f'{self.model_dir}/clusters_{split_name}/pitch_class')
+
+        plt.clf()
+        max_number_notes = 0
+        for val in cluster_stats['number_notes'].values():
+            max_number_notes = max(max(val.keys()), max_number_notes)
+        fig, axs = plt.subplots(1, num_clusters, sharey=True)
+        fig.subplots_adjust(wspace=0)
+        for cluster_index in sorted(cluster_stats['number_notes'].keys()):
+            number_notes = cluster_stats['number_notes'][cluster_index]
+            y = []
+            for number_note in range(max_number_notes):
+                if number_note in number_notes:
+                    num_occurences = number_notes[number_note]
+                    y.append(num_occurences)
+                else:
+                    y.append(0)
+            axs[cluster_index].barh(np.arange(max_number_notes), y)
+            axs[cluster_index].set_xticks([])
+        plt.yticks(np.arange(max_number_notes), range(max_number_notes))
+        plt.savefig()
+
         return
 
     def show_nn_clusters(self, k=3):

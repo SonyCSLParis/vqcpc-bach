@@ -107,7 +107,8 @@ def main(train,
         dataloader_generator_kwargs=config['dataloader_generator_kwargs']
     )
 
-    num_batches_clusters = 512
+    num_batches_clusters = 12
+    # num_batches_clusters = 512
     encoder.plot_clusters(dataloader_generator_clusters,
                           split_name='train',
                           num_batches=num_batches_clusters)
