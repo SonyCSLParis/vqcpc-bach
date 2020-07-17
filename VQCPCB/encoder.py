@@ -220,7 +220,7 @@ class Encoder(nn.Module):
             axs[cluster_index].barh(np.arange(len(pitch_class_order)), y)
             axs[cluster_index].set_xticks([])
         plt.yticks(np.arange(len(pitch_class_order)), pitch_class_order)
-        plt.savefig(f'{self.model_dir}/clusters_{split_name}/pitch_class')
+        plt.savefig(f'{self.model_dir}/clusters_{split_name}/pitch_class.pdf')
 
         plt.clf()
         max_number_notes = 0
@@ -240,7 +240,7 @@ class Encoder(nn.Module):
             axs[cluster_index].barh(np.arange(max_number_notes), y)
             axs[cluster_index].set_xticks([])
         plt.yticks(np.arange(max_number_notes), range(max_number_notes))
-        plt.savefig()
+        plt.savefig(f'{self.model_dir}/clusters_{split_name}/number_notes.pdf')
 
         return
 

@@ -38,7 +38,9 @@ config = {
     ),
     # --- Quantizer ---
     'quantizer_type': None,
-    'quantizer_kwargs': dict(),
+    'quantizer_kwargs': dict(
+        codebook_dim=32, # for downscaler
+    ),
     # --- Upscaler ---
     # 'upscaler_type': 'mlp_upscaler',  # mlp_upscaler
     'upscaler_type': None,  # mlp_upscaler
@@ -64,8 +66,8 @@ config = {
     # ======== Training ========
     'lr': 1e-4,
     'schedule_lr': False,
-    'batch_size': 32,
-    'num_batches': 512,
+    'batch_size': 16,
+    'num_batches': 1024,
     'num_epochs': 20000,
     'quantizer_regularization': dict(
         corrupt_labels=False
