@@ -5,20 +5,24 @@ import importlib
 import os
 import shutil
 from datetime import datetime
-
+import numpy as np
 import click
 import torch
 
+from VQCPCB.autoencoder import Autoencoder
 from VQCPCB.data.data_processor import DataProcessor
-from VQCPCB.getters import get_dataloader_generator, get_encoder, get_decoder, get_data_processor
-import numpy as np
+from VQCPCB.encoder import Encoder
+from VQCPCB.getters import get_dataloader_generator, get_data_processor, get_downscaler, get_upscaler, get_decoder
+from VQCPCB.quantizer.vector_quantizer import ProductVectorQuantizer
+
+
+def get_quantizer():
+    pass
 
 
 @click.command()
 @click.option('-t', '--train', is_flag=True)
 @click.option('-l', '--load', is_flag=True)
-@click.option('-oe', '--overfitted_encoder', is_flag=True,
-              help='Load over-fitted weights for the encoder')
 @click.option('-o', '--overfitted', is_flag=True,
               help='Load over-fitted weights for the decoder instead of early-stopped.'
                    'Only used with -l')
@@ -28,7 +32,6 @@ import numpy as np
 @click.option('-n', '--num_workers', type=int, default=0)
 def main(train,
          load,
-         overfitted_encoder,
          overfitted,
          config,
          reharmonization,
@@ -60,31 +63,9 @@ def main(train,
     else:
         model_dir = f'models/{config["savename"]}_{timestamp}'
 
-    # ==== Load encoders ====
-    # load stack of encoders from top-most encoder (lastly trained)
-    config_encoder_path = config['config_encoder']
-    config_encoder_module_name = os.path.splitext(config_encoder_path)[0].replace('/', '.')
-    config_encoder = importlib.import_module(config_encoder_module_name).config
-    config_encoder['quantizer_kwargs']['initialize'] = False
-    if config['config_encoder'] is None:
-        model_dir_encoder = None
-    else:
-        model_dir_encoder = os.path.dirname(config_encoder_path)
-    dataloader_generator = get_dataloader_generator(
-        training_method=config_encoder['training_method'],
-        dataloader_generator_kwargs=config_encoder['dataloader_generator_kwargs'],
-    )
-    encoder = get_encoder(model_dir=model_dir_encoder,
-                          dataloader_generator=dataloader_generator,
-                          config=config_encoder
-                          )
-    if config['config_encoder'] is not None:
-        if overfitted_encoder:
-            encoder.load(early_stopped=False, device=device)
-        else:
-            encoder.load(early_stopped=True, device=device)
+    config['quantizer_kwargs']['initialize'] = not load
 
-    # === Decoder ====
+    # === Autoencoder ====
     dataloader_generator = get_dataloader_generator(
         training_method=config['training_method'],
         dataloader_generator_kwargs=config['dataloader_generator_kwargs']
@@ -95,6 +76,40 @@ def main(train,
         data_processor_kwargs=config['data_processor_kwargs']
     )
 
+    downscaler_kwargs = config['downscaler_kwargs']
+    quantizer_kwargs = config['quantizer_kwargs']
+    downscaler_kwargs['input_dim'] = data_processor.embedding_size
+    downscaler_kwargs['output_dim'] = quantizer_kwargs['codebook_dim']
+    downscaler_kwargs['num_tokens'] = data_processor.num_tokens
+    downscaler_kwargs['num_channels'] = data_processor.num_channels
+    downscaler = get_downscaler(
+        downscaler_type='lstm_downscaler',
+        downscaler_kwargs=downscaler_kwargs
+    )
+
+    quantizer = ProductVectorQuantizer(
+        codebook_size=quantizer_kwargs['codebook_size'],
+        codebook_dim=quantizer_kwargs['codebook_dim'],
+        initialize=quantizer_kwargs['initialize'],
+        squared_l2_norm=quantizer_kwargs['squared_l2_norm'],
+        use_batch_norm=quantizer_kwargs['use_batch_norm'],
+        commitment_cost=quantizer_kwargs['commitment_cost']
+    )
+
+    upscaler = get_upscaler(
+        upscaler_type=None,
+        upscaler_kwargs={}
+    )
+
+    encoder = Encoder(
+        model_dir=model_dir,
+        data_processor=data_processor,
+        downscaler=downscaler,
+        quantizer=quantizer,
+        upscaler=upscaler
+    )
+
+    decoder_kwargs = config['decoder_kwargs']
     num_channels_decoder = data_processor.num_channels
     num_events_decoder = data_processor.num_events
     num_channels_encoder = 1
@@ -107,22 +122,29 @@ def main(train,
         dataloader_generator=dataloader_generator,
         data_processor=data_processor,
         encoder=encoder,
-        freeze_encoder=True,
-        decoder_type=config['decoder_type'],
-        decoder_kwargs=config['decoder_kwargs'],
+        freeze_encoder=False,
+        decoder_type='transformer_relative_diagonal',
+        decoder_kwargs=decoder_kwargs,
         num_channels_decoder=num_channels_decoder,
         num_events_decoder=num_events_decoder,
         num_channels_encoder=num_channels_encoder,
         num_events_encoder=num_events_encoder,
-        re_embed_source=True
+        re_embed_source=False
+    )
+    autoencoder = Autoencoder(
+        model_dir=model_dir,
+        dataloader_generator=dataloader_generator,
+        data_processor=data_processor,
+        encoder=encoder,
+        decoder=decoder
     )
 
     if load:
         if overfitted:
-            decoder.load(early_stopped=False, device=device)
+            autoencoder.load(early_stopped=False, device=device)
         else:
-            decoder.load(early_stopped=True, device=device)
-        decoder.to(device)
+            autoencoder.load(early_stopped=True, device=device)
+        autoencoder.to(device)
 
     if train:
         # Copy .py config file in the save directory before training
@@ -130,8 +152,8 @@ def main(train,
             if not os.path.exists(model_dir):
                 os.makedirs(model_dir)
             shutil.copy(config_path, f'{model_dir}/config.py')
-        decoder.to(device)
-        decoder.train_model(
+        autoencoder.to(device)
+        autoencoder.train_model(
             batch_size=config['batch_size'],
             num_batches=config['num_batches'],
             num_epochs=config['num_epochs'],
@@ -144,7 +166,7 @@ def main(train,
     num_examples = 3
     for _ in range(num_examples):
         if code_juxtaposition:
-            scores = decoder.generate(
+            scores = autoencoder.generate(
                 temperature=1.0,
                 top_p=0.8,
                 top_k=0,
@@ -154,18 +176,18 @@ def main(train,
                 code_juxtaposition=True
             )
 
-        scores = decoder.generate(temperature=1.0,
-                                  top_p=0.95,
-                                  top_k=0,
-                                  batch_size=3,
-                                  seed_set='val',
-                                  plot_attentions=False,
-                                  code_juxtaposition=False)
+        scores = autoencoder.generate(temperature=1.0,
+                                      top_p=0.95,
+                                      top_k=0,
+                                      batch_size=3,
+                                      seed_set='val',
+                                      plot_attentions=False,
+                                      code_juxtaposition=False)
         # for score in scores:
         #     score.show()
 
     if reharmonization:
-        scores = decoder.generate_reharmonisation(
+        scores = autoencoder.generate_reharmonisation(
             temperature=0.9,
             top_p=0.95,
             top_k=0,

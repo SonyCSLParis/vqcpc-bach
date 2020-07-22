@@ -31,6 +31,7 @@ def get_dataloader_generator(
         )
     elif (training_method.lower() == 'student'
           or training_method.lower() == 'decoder'
+          or training_method.lower() == 'autoencoder'
           or training_method.lower() == 'prior'):
         return BachDataloaderGenerator(
             sequences_size=dataloader_generator_kwargs['sequences_size']
@@ -249,15 +250,14 @@ def get_decoder(model_dir,
                 dataloader_generator,
                 data_processor,
                 encoder,
+                freeze_encoder,
                 decoder_type,
-                decoder_kwargs):
-    num_channels_decoder = data_processor.num_channels
-    num_events_decoder = data_processor.num_events
-    num_channels_encoder = 1
-    num_events_encoder = int((num_events_decoder * num_channels_decoder) // \
-                             (np.prod(encoder.downscaler.downscale_factors) *
-                              num_channels_encoder)
-                             )
+                decoder_kwargs,
+                num_channels_decoder,
+                num_events_decoder,
+                num_channels_encoder,
+                num_events_encoder,
+                re_embed_source):
 
     if decoder_type == 'transformer':
         decoder = Decoder(
@@ -265,6 +265,7 @@ def get_decoder(model_dir,
             dataloader_generator=dataloader_generator,
             data_processor=data_processor,
             encoder=encoder,
+            freeze_encoder=freeze_encoder,
             transformer_type='absolute',
             encoder_attention_type='anticausal',  # anticausal, causal, diagonal or full
             cross_attention_type='full',  # anticausal, causal, diagonal or full
@@ -279,6 +280,7 @@ def get_decoder(model_dir,
             num_events_encoder=num_events_encoder,
             num_channels_decoder=num_channels_decoder,
             num_events_decoder=num_events_decoder,
+            re_embed_source=re_embed_source
         )
     elif decoder_type == 'transformer_relative':
         decoder = Decoder(
@@ -286,6 +288,7 @@ def get_decoder(model_dir,
             dataloader_generator=dataloader_generator,
             data_processor=data_processor,
             encoder=encoder,
+            freeze_encoder=freeze_encoder,
             transformer_type='relative',
             encoder_attention_type='anticausal',
             cross_attention_type='anticausal',
@@ -300,6 +303,7 @@ def get_decoder(model_dir,
             num_events_encoder=num_events_encoder,
             num_channels_decoder=num_channels_decoder,
             num_events_decoder=num_events_decoder,
+            re_embed_source=re_embed_source
         )
     elif decoder_type == 'transformer_relative_fullCross':
         decoder = Decoder(
@@ -307,6 +311,7 @@ def get_decoder(model_dir,
             dataloader_generator=dataloader_generator,
             data_processor=data_processor,
             encoder=encoder,
+            freeze_encoder=freeze_encoder,
             transformer_type='relative',
             encoder_attention_type='anticausal',
             cross_attention_type='full',
@@ -321,6 +326,7 @@ def get_decoder(model_dir,
             num_events_encoder=num_events_encoder,
             num_channels_decoder=num_channels_decoder,
             num_events_decoder=num_events_decoder,
+            re_embed_source=re_embed_source
         )
     elif decoder_type == 'transformer_relative_diagonal':
         decoder = Decoder(
@@ -328,6 +334,7 @@ def get_decoder(model_dir,
             dataloader_generator=dataloader_generator,
             data_processor=data_processor,
             encoder=encoder,
+            freeze_encoder=freeze_encoder,
             transformer_type='relative',
             encoder_attention_type='anticausal',
             cross_attention_type='diagonal',
@@ -342,6 +349,7 @@ def get_decoder(model_dir,
             num_events_encoder=num_events_encoder,
             num_channels_decoder=num_channels_decoder,
             num_events_decoder=num_events_decoder,
+            re_embed_source=re_embed_source
         )
     elif decoder_type == 'transformer_relative_full':
         decoder = Decoder(
@@ -349,6 +357,7 @@ def get_decoder(model_dir,
             dataloader_generator=dataloader_generator,
             data_processor=data_processor,
             encoder=encoder,
+            freeze_encoder=freeze_encoder,
             transformer_type='relative',
             encoder_attention_type='full',
             cross_attention_type='full',
@@ -363,6 +372,7 @@ def get_decoder(model_dir,
             num_events_encoder=num_events_encoder,
             num_channels_decoder=num_channels_decoder,
             num_events_decoder=num_events_decoder,
+            re_embed_source=re_embed_source
         )
     else:
         raise NotImplementedError

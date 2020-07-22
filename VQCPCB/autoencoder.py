@@ -12,256 +12,40 @@ from tqdm import tqdm
 
 from VQCPCB.data.chorale_dataset import END_SYMBOL, START_SYMBOL, PAD_SYMBOL
 from VQCPCB.data.data_processor import DataProcessor
-from VQCPCB.transformer.transformer_custom import TransformerCustom, TransformerDecoderCustom, \
-    TransformerEncoderCustom, \
-    TransformerDecoderLayerCustom, TransformerEncoderLayerCustom, \
-    TransformerAlignedDecoderLayerCustom
+from VQCPCB.decoder import Decoder
+from VQCPCB.encoder import Encoder
 from VQCPCB.utils import cuda_variable, categorical_crossentropy, flatten, dict_pretty_print, \
     top_k_top_p_filtering, \
     to_numpy
 
 
-class Decoder(nn.Module):
+class Autoencoder(nn.Module):
     def __init__(self,
                  model_dir,
                  dataloader_generator,
                  data_processor: DataProcessor,
                  encoder,
-                 freeze_encoder,
-                 transformer_type,  # absolute or relative
-                 encoder_attention_type,  # anticausal, causal, diagonal or full
-                 cross_attention_type,  # anticausal, causal, diagonal or full
-                 d_model,
-                 num_encoder_layers,
-                 num_decoder_layers,
-                 n_head,
-                 dim_feedforward,
-                 positional_embedding_size,
-                 num_channels_encoder,
-                 num_events_encoder,
-                 num_channels_decoder,
-                 num_events_decoder,
-                 dropout,
-                 re_embed_source):
+                 decoder):
         """
         Like DecoderCustom, but the positioning is relative
         :param model_dir:
         :param dataloader_generator:
         :param data_processor:
         :param encoder:
-        :param d_model:
-        :param num_encoder_layers:
-        :param num_decoder_layers:
-        :param n_head:
-        :param dim_feedforward:
-        :param positional_embedding_size:
-        :param num_channels_encoder:
-        :param num_events_encoder:
-        :param num_channels_decoder:
-        :param num_events_decoder:
-        :param dropout:
         """
-        super(Decoder, self).__init__()
-        self.transformer_type = transformer_type
-        assert encoder_attention_type in ['anticausal', 'causal', 'full']
-        self.encoder_attention_type = encoder_attention_type
-        assert cross_attention_type in ['anticausal', 'causal', 'diagonal', 'full']
-        self.cross_attention_type = cross_attention_type
-        self.model_dir = model_dir
-        self.encoder = encoder
-        if freeze_encoder:  # False for autoencoder
-            # freeze encoder
-            self.encoder.eval()
-            for p in self.encoder.parameters():
-                p.requires_grad = False
+        super(Autoencoder, self).__init__()
 
+        # encoder
+        self.encoder: Encoder = encoder
+        self.decoder: Decoder = decoder
+        self.model_dir = model_dir
         self.dataloader_generator = dataloader_generator
         self.data_processor = data_processor
-        self.re_embed_source = re_embed_source
-
-        # Compute num_tokens for source and target
-        self.num_tokens_per_channel = self.data_processor.num_tokens_per_channel
-        self.num_channels = len(self.num_tokens_per_channel)
-        self.d_model = d_model
-        self.num_tokens_target = self.data_processor.num_tokens
-        self.total_upscaling = (num_events_decoder * num_channels_decoder) // \
-                               (num_events_encoder * num_channels_encoder)
-        assert self.num_tokens_target % self.total_upscaling == 0
-        assert self.num_tokens_target == num_channels_decoder * num_events_decoder
-
-        ######################################################
-        # Embeddings
-        if transformer_type == 'absolute':
-            num_tokens_source = self.num_tokens_target // np.prod(
-                self.encoder.downscaler.downscale_factors)
-            self.source_positional_embeddings = nn.Parameter(
-                torch.randn((1,
-                             num_tokens_source,
-                             positional_embedding_size))
-            )
-            self.target_positional_embeddings = nn.Parameter(
-                torch.randn((1,
-                             self.num_tokens_target,
-                             positional_embedding_size))
-            )
-        elif transformer_type == 'relative':
-            self.target_channel_embeddings = nn.Parameter(
-                torch.randn((1,
-                             self.num_channels,
-                             positional_embedding_size))
-            )
-            self.num_events_per_code = self.total_upscaling // self.num_channels
-            # Position relative to a code
-            self.target_events_positioning_embeddings = nn.Parameter(
-                torch.randn((1,
-                             self.num_events_per_code,
-                             positional_embedding_size))
-            )
-
-        ######################################################
-        #  Encoder Transformer
-        # compute size with sos padding
-        num_events_encoder_padded = num_events_encoder + 1
-        num_events_decoder_padded = num_events_decoder + self.num_events_per_code
-        if transformer_type == 'absolute':
-            encoder_layer = TransformerEncoderLayerCustom(
-                d_model=d_model,
-                nhead=n_head,
-                attention_bias_type=None,
-                num_channels=num_channels_encoder,
-                num_events=num_events_encoder_padded,
-                dim_feedforward=dim_feedforward,
-                dropout=dropout
-            )
-        elif transformer_type == 'relative':
-            encoder_layer = TransformerEncoderLayerCustom(
-                d_model=d_model,
-                nhead=n_head,
-                attention_bias_type='relative_attention',
-                num_channels=num_channels_encoder,
-                num_events=num_events_encoder_padded,
-                dim_feedforward=dim_feedforward,
-                dropout=dropout
-            )
-
-        custom_encoder = TransformerEncoderCustom(
-            encoder_layer=encoder_layer,
-            num_layers=num_encoder_layers
-        )
-
-        ######################################################
-        #  Decoder Transformer
-        if transformer_type == 'absolute':
-            decoder_layer = TransformerDecoderLayerCustom(
-                d_model=d_model,
-                nhead=n_head,
-                attention_bias_type_self=None,
-                attention_bias_type_cross=None,
-                num_channels_encoder=num_channels_encoder,
-                num_events_encoder=num_events_encoder_padded,
-                num_channels_decoder=num_channels_decoder,
-                num_events_decoder=num_events_decoder_padded,
-                dim_feedforward=dim_feedforward,
-                dropout=dropout
-            )
-        elif transformer_type == 'relative':
-            if cross_attention_type == 'diagonal':
-                decoder_layer = TransformerAlignedDecoderLayerCustom(
-                    d_model=d_model,
-                    nhead=n_head,
-                    attention_bias_type_self='relative_attention',
-                    attention_bias_type_cross=None,
-                    num_channels_encoder=num_channels_encoder,
-                    num_events_encoder=num_events_encoder_padded,
-                    num_channels_decoder=num_channels_decoder,
-                    num_events_decoder=num_events_decoder_padded,
-                    dim_feedforward=dim_feedforward,
-                    dropout=dropout
-                )
-            else:
-                decoder_layer = TransformerDecoderLayerCustom(
-                    d_model=d_model,
-                    nhead=n_head,
-                    attention_bias_type_self='relative_attention',
-                    attention_bias_type_cross='relative_attention_target_source',
-                    num_channels_encoder=num_channels_encoder,
-                    num_events_encoder=num_events_encoder_padded,
-                    num_channels_decoder=num_channels_decoder,
-                    num_events_decoder=num_events_decoder_padded,
-                    dim_feedforward=dim_feedforward,
-                    dropout=dropout
-                )
-
-        custom_decoder = TransformerDecoderCustom(
-            decoder_layer=decoder_layer,
-            num_layers=num_decoder_layers
-        )
-
-        ######################################################
-        # Complete Transformer
-        self.transformer = TransformerCustom(
-            d_model=self.d_model,
-            nhead=n_head,
-            custom_encoder=custom_encoder,
-            custom_decoder=custom_decoder
-        )
-
-        ######################################################
-        # Target pre-processing
-        # (Target embeddings is in data_processor, so no need to have an emebdding here.)
-        # Just a linear to map to the proper dimension
-        if self.transformer_type == 'absolute':
-            linear_target_input_size = self.data_processor.embedding_size + positional_embedding_size
-        elif self.transformer_type == 'relative':
-            linear_target_input_size = self.data_processor.embedding_size + positional_embedding_size * 2
-        self.linear_target = nn.Linear(linear_target_input_size, self.d_model)
-        # start of sentence
-        self.sos_target = nn.Parameter(torch.randn((self.total_upscaling, 1, self.d_model)))
-        self.sos_source = nn.Parameter(torch.randn((num_channels_encoder, 1, self.d_model)))
-
-        ######################################################
-        # Source pre-processing
-        # Re-embed the codes extracted by the encoder (instead of using directly the z computed by the encoder,
-        # we use the cluster indices computed by the encoder and learn a new embedding jointly with the decoder)
-        if self.transformer_type == 'relative':
-            source_embedding_dim = self.d_model
-        elif self.transformer_type == 'absolute':
-            source_embedding_dim = self.d_model - positional_embedding_size
-
-        if type(self.encoder.quantizer).__name__ == 'NoQuantization':
-            re_embed_source = False
-
-        if re_embed_source:
-            codebook_size = self.encoder.quantizer.codebook_size
-            self.source_embeddings = nn.Embedding(
-                codebook_size, source_embedding_dim
-            )
-        else:
-            #  if not re_embeding the source tokens, simply use a linear to map to the correct dimension
-            source_dim = self.encoder.quantizer.codebook_dim
-            self.source_embeddings = nn.Linear(source_dim, source_embedding_dim)
-
-        ######################################################
-        # Output dimension adjustment
-        self.pre_softmaxes = nn.ModuleList([nn.Linear(self.d_model, num_tokens_of_channel)
-                                            for num_tokens_of_channel in self.num_tokens_per_channel
-                                            ]
-                                           )
-
-        ######################################################
-        # optim
         self.optimizer = None
         self.scheduler = None
 
     def __repr__(self):
-        name_mappings = dict(
-            anticausal='AC',
-            causal='C',
-            full='F',
-            diagonal='D'
-        )
-        return f'Decoder-{self.transformer_type}-{name_mappings[self.encoder_attention_type]}-' \
-               f'{name_mappings[self.cross_attention_type]}'
+        return f'Autoencoder'
 
     def init_optimizers(self, lr, schedule_lr):
         # Optimizer
@@ -285,40 +69,18 @@ class Decoder(nn.Module):
             self.scheduler = torch.optim.lr_scheduler.LambdaLR(self.optimizer, lr_lambda=lr_schedule)
 
     def save(self, early_stopped):
-        # This saves also the encoder
         if early_stopped:
             model_dir = f'{self.model_dir}/early_stopped'
         else:
             model_dir = f'{self.model_dir}/overfitted'
         if not os.path.exists(model_dir):
             os.makedirs(model_dir)
-        torch.save(self.state_dict(), f'{model_dir}/decoder')
+        self.encoder.save(early_stopped)
+        self.decoder.save(early_stopped)
 
     def load(self, early_stopped, device):
-        print(f'Loading models {self.__repr__()}')
-        if early_stopped:
-            print('Load early stopped model')
-            model_dir = f'{self.model_dir}/early_stopped'
-        else:
-            print('Load over-fitted model')
-            model_dir = f'{self.model_dir}/overfitted'
-        self.load_state_dict(torch.load(f'{model_dir}/decoder', map_location=torch.device(device)))
-
-    def _generate_square_subsequent_mask(self, sz):
-        mask = (torch.triu(torch.ones(sz, sz)) == 1).transpose(0, 1)
-        mask = mask.float().masked_fill(mask == 0, float('-inf')).masked_fill(mask == 1, float(0.0))
-        return mask
-
-    def _generate_anticausal_mask(self, sz, sz_tgt=None):
-        mask = cuda_variable(self._generate_square_subsequent_mask(sz)).t()
-        if sz_tgt is not None:
-            assert sz_tgt % sz == 0
-            subsampling_factor = sz_tgt // sz
-            mask = torch.repeat_interleave(mask, subsampling_factor, dim=0)
-        return mask
-
-    def _generate_causal_mask(self, sz):
-        return cuda_variable(self._generate_square_subsequent_mask(sz))
+        self.encoder.load(early_stopped, device)
+        self.decoder.load(early_stopped, device)
 
     def epoch(self, data_loader,
               train=True,
@@ -328,7 +90,6 @@ class Decoder(nn.Module):
 
         if train:
             self.train()
-            self.encoder.eval()
         else:
             self.eval()
 
@@ -336,21 +97,9 @@ class Decoder(nn.Module):
                 islice(data_loader, num_batches)),
                 ncols=80):
 
-            # ======== Get codes from Encoder ==================
-            with torch.no_grad():
-                x = tensor_dict['x']
-                # compute encoding_indices version
-                z_quantized, encoding_indices, quantization_loss = self.encoder(x)
-                if encoding_indices is None:
-                    # if no quantization is used, directly use the zs
-                    encoding_indices = z_quantized
-
-            # ======== Train decoder =============
             self.optimizer.zero_grad()
-            forward_pass = self.forward(
-                encoding_indices,
-                x
-            )
+            x = tensor_dict['x']
+            forward_pass = self.forward(x)
             loss = forward_pass['loss']
             if train:
                 loss.backward()
@@ -365,7 +114,8 @@ class Decoder(nn.Module):
             # average quantities
             if means is None:
                 means = {key: 0
-                         for key in monitored_quantities}
+                         for key in monitored_quantities if key != 'codebook_usage_histo'}
+                means['codebook_usage_histo'] = np.zeros_like(monitored_quantities['codebook_usage_histo'])
             means = {
                 key: value + means[key]
                 for key, value in monitored_quantities.items()
@@ -378,6 +128,7 @@ class Decoder(nn.Module):
             key: value / (sample_id + 1)
             for key, value in means.items()
         }
+        means['codebook_usage_histo'] = list(means['codebook_usage_histo'])
         return means
 
     def train_model(self,
@@ -438,12 +189,40 @@ class Decoder(nn.Module):
                           monitored_quantities_train,
                           monitored_quantities_val)
 
-    def forward(self, source, target):
+    def forward(self, x):
+
         """
         :param source: sequence of codebooks (batch_size, s_s)
         :param target: sequence of tokens (batch_size, num_events, num_channels)
         :return:
         """
+        # compute encoding_indices version
+        z_quantized, encoding_indices, quantization_loss = self.encoder(x)
+        q_loss = quantization_loss.mean()
+        # compute num codewords
+        codebook_usage_histo, _ = np.histogram(np.asarray(encoding_indices.tolist()),
+                                               bins=self.encoder.quantizer.codebook_size,
+                                               range=(0, 8))
+
+        # compute encoding_indices version
+        decoder_output = self.decoder(source=z_quantized,
+                                      target=x)
+        reconstruction_loss = decoder_output['loss']
+        loss = reconstruction_loss + q_loss
+        return {
+            'loss': loss,
+            'attentions_decoder': decoder_output['attentions_decoder'],
+            'attentions_encoder': decoder_output['attentions_encoder'],
+            'weights_per_category': decoder_output['weights_per_category'],
+            'monitored_quantities': {
+                'loss': loss.item(),
+                'reconstruction_loss': reconstruction_loss.item(),
+                'quantization_loss': q_loss.item(),
+                'codebook_usage_histo': codebook_usage_histo
+            }
+        }
+
+    def decode(self, source, target):
         batch_size = source.size(0)
         # embed
         source_seq = self.source_embeddings(source)
@@ -482,19 +261,11 @@ class Decoder(nn.Module):
         target_seq = target_seq.transpose(0, 1)
 
         # shift target_seq by one
-        # Pad
-        dummy_input_source = self.sos_source.repeat(1, batch_size, 1)
-        source_seq = torch.cat(
-            [
-                dummy_input_source,
-                source_seq
-            ],
-            dim=0)
-        dummy_input_target = self.sos_target.repeat(1, batch_size, 1)
+        dummy_input = self.sos.repeat(1, batch_size, 1)
         target_seq = torch.cat(
             [
-                dummy_input_target,
-                target_seq
+                dummy_input,
+                target_seq[:-1]
             ],
             dim=0)
 
@@ -533,9 +304,6 @@ class Decoder(nn.Module):
 
         output = output.transpose(0, 1).contiguous()
 
-        # remove padded symbols
-        output = output[:, self.total_upscaling - 1:-1]
-
         output = output.view(batch_size,
                              -1,
                              self.num_channels,
@@ -546,29 +314,42 @@ class Decoder(nn.Module):
         ]
 
         # we can change loss mask
-        loss = categorical_crossentropy(
+        reconstruction_loss = categorical_crossentropy(
             value=weights_per_category,
             target=target,
             mask=torch.ones_like(target)
         )
-
-        loss = loss.mean()
-        return {
-            'loss': loss,
-            'attentions_decoder': attentions_decoder,
-            'attentions_encoder': attentions_encoder,
-            'weights_per_category': weights_per_category,
-            'monitored_quantities': {
-                'loss': loss.item()
-            }
-        }
+        return reconstruction_loss
 
     def plot(self, epoch_id, monitored_quantities_train,
              monitored_quantities_val):
-        for k, v in monitored_quantities_train.items():
-            self.writer.add_scalar(f'{k}/train', v, epoch_id)
-        for k, v in monitored_quantities_val.items():
-            self.writer.add_scalar(f'{k}/val', v, epoch_id)
+        if monitored_quantities_train is not None:
+            for k, v in monitored_quantities_train.items():
+                if k == 'codebook_usage_histo':
+                    fig = plt.figure()
+                    y = np.asarray(v)
+                    plt.bar(x=np.arange(y.shape[0]),
+                            height=y
+                            )
+                    self.writer.add_figure(f'codebook_{k}_usage', fig,
+                                           global_step=epoch_id,
+                                           close=True)
+                else:
+                    self.writer.add_scalar(f'{k}/train', v, epoch_id)
+
+        if monitored_quantities_val is not None:
+            for k, v in monitored_quantities_val.items():
+                if k == 'codebook_usage_histo':
+                    fig = plt.figure()
+                    y = np.asarray(v)
+                    plt.bar(x=np.arange(y.shape[0]),
+                            height=y
+                            )
+                    self.writer.add_figure(f'codebook_{k}_usage', fig,
+                                           global_step=epoch_id,
+                                           close=True)
+                else:
+                    self.writer.add_scalar(f'{k}/val', v, epoch_id)
 
     def generate(self, temperature,
                  batch_size=1,
