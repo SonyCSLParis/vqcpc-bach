@@ -33,7 +33,7 @@ config = {
     # --- Quantizer ---
     # 'quantizer_type': 'commitment',
     'quantizer_kwargs': dict(
-        codebook_size=8,
+        codebook_size=16,
         codebook_dim=32,
         commitment_cost=0.25,
         use_batch_norm=False,

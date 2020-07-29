@@ -22,6 +22,7 @@ def get_quantizer():
 
 @click.command()
 @click.option('-t', '--train', is_flag=True)
+@click.option('-pc', '--plot_clusters', is_flag=True)
 @click.option('-l', '--load', is_flag=True)
 @click.option('-o', '--overfitted', is_flag=True,
               help='Load over-fitted weights for the decoder instead of early-stopped.'
@@ -31,6 +32,7 @@ def get_quantizer():
 @click.option('--code_juxtaposition', is_flag=True)
 @click.option('-n', '--num_workers', type=int, default=0)
 def main(train,
+         plot_clusters,
          load,
          overfitted,
          config,
@@ -162,6 +164,24 @@ def main(train,
             plot=True,
             num_workers=num_workers
         )
+
+    if plot_clusters:
+        dataloader_generator_clusters = get_dataloader_generator(
+            training_method='autoencoder',
+            dataloader_generator_kwargs=config['dataloader_generator_kwargs']
+        )
+        num_batches_clusters = 512
+        autoencoder.encoder.plot_clusters(dataloader_generator_clusters,
+                                          split_name='train',
+                                          num_batches=num_batches_clusters)
+        autoencoder.encoder.plot_clusters(dataloader_generator_clusters,
+                                          split_name='val',
+                                          num_batches=num_batches_clusters)
+
+        autoencoder.encoder.show_nn_clusters()
+
+        if autoencoder.encoder.quantizer.codebook_dim == 3:
+            autoencoder.encoder.scatterplot_clusters_3d()
 
     num_examples = 3
     for _ in range(num_examples):

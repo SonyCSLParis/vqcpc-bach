@@ -395,15 +395,11 @@ class Autoencoder(nn.Module):
                 x_original_single = tensor_dict['x']
                 x_original = x_original_single.repeat(batch_size, 1, 1)
 
-            # compute downscaled version
-            zs, encoding_indices, _ = self.encoder(x_original)
-            if encoding_indices is None:
-                # if no quantization is used, directly use the zs
-                encoding_indices = zs
+            # encode seed
+            zs, _, _ = self.encoder(x_original)
 
+            # init generation
             x = self.init_generation(num_events=self.data_processor.num_events)
-
-            # Duplicate along batch dimension
             x = x.repeat(batch_size, 1, 1)
 
             attentions_decoder_list = []
@@ -411,9 +407,8 @@ class Autoencoder(nn.Module):
             attentions_cross_list = []
 
             for event_index in range(self.data_processor.num_events):
-                for channel_index in range(self.num_channels):
-                    forward_pass = self.forward(encoding_indices,
-                                                x)
+                for channel_index in range(self.decoder.num_channels):
+                    forward_pass = self.decoder(zs, x)
 
                     weights_per_voice = forward_pass['weights_per_category']
                     weights = weights_per_voice[channel_index]
@@ -442,7 +437,7 @@ class Autoencoder(nn.Module):
                     # update generated sequence
                     for batch_index in range(batch_size):
                         new_pitch_index = np.random.choice(np.arange(
-                            self.num_tokens_per_channel[channel_index]
+                            self.decoder.num_tokens_per_channel[channel_index]
                         ), p=p[batch_index])
                         x[batch_index, event_index, channel_index] = int(new_pitch_index)
 
@@ -522,7 +517,7 @@ class Autoencoder(nn.Module):
 
     def init_generation(self, num_events):
         return cuda_variable(
-            torch.zeros(1, num_events, self.num_channels).long()
+            torch.zeros(1, num_events, self.decoder.num_channels).long()
         )
 
     def generate_from_code_long(self, encoding_indices,

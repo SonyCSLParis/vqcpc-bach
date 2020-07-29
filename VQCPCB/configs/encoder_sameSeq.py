@@ -37,14 +37,23 @@ config = {
         bidirectional=True
     ),
     # --- Quantizer ---
-    'quantizer_type': 'commitment',
+    # 'quantizer_type': 'commitment',
+    # 'quantizer_kwargs': dict(
+    #     codebook_size=8,
+    #     codebook_dim=32,
+    #     commitment_cost=0.25,
+    #     use_batch_norm=False,
+    #     squared_l2_norm=True
+    # ),
+    'quantizer_type': 'ema',
     'quantizer_kwargs': dict(
-        codebook_size=8,
+        codebook_size=16,
         codebook_dim=32,
         commitment_cost=0.25,
         use_batch_norm=False,
-        squared_l2_norm=True
-        # add corrupt indices
+        squared_l2_norm=True,
+        ema_gamma_update=0.99,
+        ema_threshold=0.1,
     ),
     # --- Upscaler ---
     # 'upscaler_type': 'mlp_upscaler',  # mlp_upscaler

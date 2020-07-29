@@ -11,6 +11,7 @@ from VQCPCB.downscalers.relative_transformer_downscaler import RelativeTransform
 from VQCPCB.downscalers.relative_transformer_downscaler_linear import \
     RelativeTransformerDownscalerLinear
 from VQCPCB.encoder import Encoder
+from VQCPCB.quantizer.ema_quantizer import EMAQuantizer
 from VQCPCB.quantizer.vector_quantizer import ProductVectorQuantizer, NoQuantization
 from VQCPCB.distilled_vae.student_encoder_trainer import StudentEncoderTrainer
 from VQCPCB.distilled_vae.teachers.teacher_relative import TeacherRelative
@@ -133,6 +134,15 @@ def get_encoder(model_dir,
                 squared_l2_norm=quantizer_kwargs['squared_l2_norm'],
                 use_batch_norm=quantizer_kwargs['use_batch_norm'],
                 commitment_cost=quantizer_kwargs['commitment_cost']
+            )
+        elif config['quantizer_type'] == 'ema':
+            quantizer = EMAQuantizer(
+                codebook_size=quantizer_kwargs['codebook_size'],
+                codebook_dim=quantizer_kwargs['codebook_dim'],
+                initialize=quantizer_kwargs['initialize'],
+                commitment_cost=quantizer_kwargs['commitment_cost'],
+                ema_gamma_update=quantizer_kwargs['ema_gamma_update'],
+                ema_threshold=quantizer_kwargs['ema_threshold']
             )
         elif config['quantizer_type'] is None:
             quantizer = NoQuantization(codebook_dim=quantizer_kwargs['codebook_dim'])
