@@ -47,7 +47,7 @@ config = {
     # ),
     'quantizer_type': 'ema',
     'quantizer_kwargs': dict(
-        codebook_size=16,
+        codebook_size=8,
         codebook_dim=32,
         commitment_cost=0.25,
         use_batch_norm=False,
@@ -67,9 +67,9 @@ config = {
 
     # ======== AuxiliaryNetworks =====
     'auxiliary_networks_kwargs': {
-        'quantization_weighting': 1.0,
+        'quantization_weighting': 0.5,
         'c_net_kwargs': dict(
-            output_dim=32,
+            output_dim=16,
             hidden_size=512,
             num_layers=2,
             dropout=0.1,

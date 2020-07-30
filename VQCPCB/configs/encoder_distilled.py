@@ -9,17 +9,13 @@ num_block_right = 6
 sequences_size = num_beats * (num_block_right + num_block_left)
 
 config = {
-    'training_method': 'vqcpc',  # vqcpc or student
+    'training_method': 'student',  # vqcpc or student
 
     # ======== Dataloader ======
-    'dataloader_generator_kwargs': dict(num_tokens_per_block=num_tokens_per_block,
-                                        num_blocks_left=num_block_left,
-                                        num_blocks_right=num_block_right,
-                                        negative_sampling_method='random',  # random or same_sequence
-                                        num_negative_samples=15,            # useless in the same_sequence case
-                                        sequences_size=sequences_size,      # used only for visualising clusters
-                                        ),
-    'subdivision': subdivision,  # Number of frame per quarter note
+    'dataloader_generator_kwargs': dict(
+        sequences_size=24
+    ),
+    'subdivision':                 subdivision,  # Number of frame per quarter note
 
     # ======== Encoder =========
     # --- DataProcessor ---
@@ -28,15 +24,21 @@ config = {
     ),
     # --- Downscaler ---
     # 'downscaler_type': 'relative_transformer_downscaler',
-    'downscaler_type': 'lstm_downscaler',
-    'downscaler_kwargs': dict(
+    'downscaler_type':             'relative_transformer_downscaler_linear',
+    'downscaler_kwargs':           dict(
         # DCPC uses a Transformer
-        downscale_factors=[num_tokens_per_block],
-        hidden_size=512,
-        num_layers=2,
-        dropout=0.1,
-        bidirectional=True
+        # downscale_factors=[4, 8],
+        downscale_factors=[4, 4],
+        d_model=512,
+        n_head=8,
+        # list_of_num_layers=[3, 5],
+        list_of_num_layers=[4, 4],
+        dim_feedforward=2048,
+        # both are bidirectional
+        attention_bias_type='relative_attention',
+        dropout=0.1
     ),
+
     # --- Quantizer ---
     # 'quantizer_type': 'commitment',
     # 'quantizer_kwargs': dict(
@@ -68,18 +70,42 @@ config = {
 
     # ======== AuxiliaryNetworks =====
     'auxiliary_networks_kwargs': {
-        'quantization_weighting': 0.5,
-        'c_net_kwargs': dict(
-            output_dim=32,
-            hidden_size=512,
-            num_layers=2,
+        # multiplicative term in front of the quantization loss
+        'quantization_weighting': 0.1,
+        'num_events_masked': 4,
+        'teacher_type': 'relative',
+        # relative or absolute
+        'teacher_kwargs': dict(
+            # teacher must have its own data_processor
+            data_processor_config=dict(
+                data_processor_type='bach',
+                data_processor_kwargs=dict(
+                    embedding_size=32
+                )
+            ),
+            num_layers=8,
+            positional_embedding_size=8,
+            d_model=512,
+            dim_feedforward=2048,
+            n_head=8,
             dropout=0.1,
-            bidirectional=False
         ),
+
+        'auxiliary_decoder_type': 'relative',
+        # relative or absolute
+        'auxiliary_decoder_kwargs': dict(
+            positional_embedding_size=8,
+            d_model=512,
+            dim_feedforward=2048,
+            n_head=8,
+            dropout=0.1,
+            list_of_num_layers=[4, 4]
+        )  # the decoder mirrors the encoder
+
     },
 
     # ======== Training ========
-    'lr': 1e-4,
+    'lr': 1e-5,
     'schedule_lr': False,
     'batch_size': 16,
     'num_batches': 1024,
