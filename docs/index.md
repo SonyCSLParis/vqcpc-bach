@@ -50,7 +50,7 @@ the negative samples in the CPC objective on the learnt clusters.
 <img class="recimg" src="exemples/global_architecture.png">
 
 We applied our technique on the corpus of J.S. Bach chorales to derive a generative model  particularly well-suited for generating variations of a given input chorale.
-Our experiments can be reproduced using our [Github repository](https://github.com/SonyCSLParis/vqcpc-bac).
+Our experiments can be reproduced using our [Github repository](https://github.com/SonyCSLParis/vqcpc-bach).
 
 
 
